@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golem — a decision model built from scratch in Go</title>
+<meta name="description" content="Golem is a GPT-style language model written from scratch in Go, layer by layer, following the research papers. Golem-One XL turns it into a System One decision model: typed questions in, a probability for every allowed answer out.">
+<meta property="og:title" content="Golem-One XL — a decision model built from scratch in Go">
+<meta property="og:description" content="From next-token prediction to System One decisions. Every layer hand-written in Go, every layer following its paper.">
+<meta name="theme-color" content="#05060a">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305060a'/%3E%3Crect x='7' y='6' width='18' height='20' rx='4' fill='none' stroke='%2300ADD8' stroke-width='2.5'/%3E%3Ccircle cx='13' cy='14' r='2' fill='%235CFF8A'/%3E%3Ccircle cx='19' cy='14' r='2' fill='%235CFF8A'/%3E%3Cpath d='M12 20h8' stroke='%2300ADD8' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05060a;
+  --bg-2:#0a0c13;
+  --panel:rgba(255,255,255,.028);
+  --panel-2:rgba(255,255,255,.05);
+  --line:rgba(255,255,255,.08);
+  --line-2:rgba(255,255,255,.14);
+  --text:#e9edf5;
+  --muted:#8c95a8;
+  --dim:#5b6376;
+  --go:#00ADD8;
+  --go-2:#5DC9E2;
+  --n-green:#5CFF8A;
+  --n-red:#FF5470;
+  --n-cyan:#7FE9FF;
+  --n-pink:#E36BFF;
+  --n-yellow:#FFE25C;
+  --n-blue:#5B7CFF;
+  --n-orange:#FFA24C;
+  --radius:18px;
+  --maxw:1180px;
+  --display:"Space Grotesk",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 var(--body);overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(900px 500px at 85% -10%,rgba(0,173,216,.16),transparent 60%),
+    radial-gradient(700px 500px at -10% 20%,rgba(92,255,138,.07),transparent 60%),
+    radial-gradient(800px 600px at 50% 120%,rgba(227,107,255,.08),transparent 60%);}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:56px 56px;mask-image:radial-gradient(ellipse at 50% 0%,#000 30%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse at 50% 0%,#000 30%,transparent 75%)}
+main,header,footer{position:relative;z-index:1}
+a{color:var(--go-2);text-decoration:none}
+a:hover{text-decoration:underline}
+code,kbd,.mono{font-family:var(--mono)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+@media (max-width:640px){.wrap{padding:0 16px}}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:rgba(5,6,10,.72);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:20px;height:64px}
+.brand{display:flex;align-items:center;gap:12px;color:var(--text);font:600 18px var(--display);letter-spacing:.2px}
+.brand:hover{text-decoration:none}
+.brand svg{height:22px;width:auto}
+.brand .sep{width:1px;height:22px;background:var(--line-2)}
+.nav ul{display:flex;gap:4px;list-style:none;margin:0 0 0 auto;padding:0}
+.nav ul a{color:var(--muted);font-size:14px;padding:8px 12px;border-radius:10px}
+.nav ul a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+.nav .cta{margin-left:8px}
+@media (max-width:900px){.nav ul{display:none}}
+
+.btn{display:inline-flex;align-items:center;gap:10px;font:600 15px var(--display);padding:12px 20px;border-radius:12px;border:1px solid var(--line-2);color:var(--text);background:var(--panel-2);transition:transform .2s,border-color .2s,background .2s;cursor:pointer}
+.btn:hover{text-decoration:none;transform:translateY(-1px);border-color:rgba(255,255,255,.3)}
+.btn.primary{background:linear-gradient(135deg,var(--go),#0086a8);border-color:transparent;color:#001218;box-shadow:0 10px 40px -10px rgba(0,173,216,.7)}
+.btn.small{padding:8px 14px;font-size:13px;border-radius:10px}
+
+/* hero */
+.hero{padding:88px 0 56px}
+.hero .grid{display:grid;grid-template-columns:1.08fr .92fr;gap:56px;align-items:center}
+@media (max-width:980px){.hero .grid{grid-template-columns:1fr;gap:40px}.hero{padding-top:56px}}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font:500 13px var(--mono);color:var(--go-2);padding:6px 12px;border:1px solid rgba(0,173,216,.35);border-radius:999px;background:rgba(0,173,216,.08)}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--n-green);box-shadow:0 0 12px var(--n-green);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+h1{font:700 clamp(40px,6.4vw,76px)/1.02 var(--display);letter-spacing:-2px;margin:22px 0 22px}
+h1 .grad{background:linear-gradient(100deg,#fff 10%,var(--go-2) 45%,var(--n-green) 95%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:19px;color:#c3cad8;max-width:620px;margin:0 0 30px}
+.lede strong{color:var(--text);font-weight:600}
+.hero .actions{display:flex;flex-wrap:wrap;gap:12px}
+.built{display:flex;align-items:center;gap:14px;margin-top:34px;color:var(--muted);font-size:14px}
+.built svg{height:18px;width:auto}
+
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-top:56px}
+.stat{background:var(--bg-2);padding:22px 20px}
+.stat b{display:block;font:700 30px/1.1 var(--display);letter-spacing:-.5px}
+.stat span{font-size:13px;color:var(--muted)}
+.stat:nth-child(1) b{color:var(--go-2)}.stat:nth-child(2) b{color:var(--n-green)}.stat:nth-child(3) b{color:var(--n-yellow)}.stat:nth-child(4) b{color:var(--n-pink)}.stat:nth-child(5) b{color:var(--n-orange)}
+@media (max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.stat:last-child{grid-column:span 2}}
+
+/* code card */
+.card{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 30px 80px -30px rgba(0,0,0,.8)}
+.code-card{overflow:hidden}
+.code-card .bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);font:500 12px var(--mono);color:var(--muted)}
+.code-card .bar i{width:11px;height:11px;border-radius:50%;background:#2a2f3b;display:inline-block}
+.code-card .bar i:nth-child(1){background:#ff5f57}.code-card .bar i:nth-child(2){background:#febc2e}.code-card .bar i:nth-child(3){background:#28c840}
+.code-card .bar em{margin-left:auto;font-style:normal}
+pre{margin:0;padding:18px 20px;overflow-x:auto;font:13.5px/1.7 var(--mono);color:#cfd6e4}
+.k{color:var(--n-pink)}.s{color:var(--n-green)}.f{color:var(--go-2)}.c{color:var(--dim)}.n{color:var(--n-yellow)}.t{color:var(--n-orange)}
+.answers{border-top:1px solid var(--line);padding:16px 20px 20px}
+.answers h4{margin:0 0 12px;font:500 12px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.ans{margin-bottom:14px}
+.ans .q{display:flex;justify-content:space-between;font:500 13px var(--mono);margin-bottom:6px}
+.ans .q span:last-child{color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:5px}
+.bar-row{display:grid;grid-template-columns:78px 1fr 40px;align-items:center;gap:10px;font:12px var(--mono);color:var(--muted)}
+.bar-row .track{height:8px;border-radius:6px;background:rgba(255,255,255,.06);overflow:hidden}
+.bar-row .fill{height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--go),var(--n-green));transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.bar-row.top{color:var(--text)}
+.bar-row.wrong .fill{background:linear-gradient(90deg,var(--n-orange),var(--n-red))}
+.note{font-size:12.5px;color:var(--dim);margin:6px 0 0}
+
+/* sections */
+section{padding:96px 0;border-top:1px solid var(--line)}
+@media (max-width:640px){section{padding:72px 0}}
+.kicker{font:500 13px var(--mono);color:var(--go-2);letter-spacing:1.5px;text-transform:uppercase}
+h2{font:700 clamp(30px,4.2vw,48px)/1.08 var(--display);letter-spacing:-1.2px;margin:12px 0 18px}
+h3{font:600 21px/1.25 var(--display);margin:0 0 10px;letter-spacing:-.3px}
+.sub{font-size:18px;color:#b9c1d0;max-width:760px;margin:0 0 44px}
+p{margin:0 0 14px}
+.muted{color:var(--muted)}
+
+/* two ways */
+.toggle{display:inline-flex;padding:5px;border:1px solid var(--line-2);border-radius:14px;background:var(--panel);margin-bottom:26px;flex-wrap:wrap}
+.toggle button{font:600 14px var(--display);color:var(--muted);background:none;border:0;padding:10px 18px;border-radius:10px;cursor:pointer}
+.toggle button.on{background:var(--text);color:#05060a}
+.ways{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:900px){.ways{grid-template-columns:1fr}}
+.way{padding:26px;position:relative;overflow:hidden}
+.way .tag{display:inline-block;font:600 12px var(--mono);padding:4px 10px;border-radius:8px;margin-bottom:14px}
+.way.gen .tag{color:var(--n-orange);background:rgba(255,162,76,.1);border:1px solid rgba(255,162,76,.3)}
+.way.one .tag{color:var(--n-green);background:rgba(92,255,138,.08);border:1px solid rgba(92,255,138,.3)}
+.state{font:13px/1.6 var(--mono);color:#cfd6e4;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 16px}
+.state b{color:var(--muted);font-weight:500}
+.stream{font:14px/1.9 var(--mono);min-height:120px}
+.tok{display:inline-block;padding:1px 6px;margin:2px 2px;border-radius:6px;background:rgba(255,162,76,.1);border:1px solid rgba(255,162,76,.25);color:#ffd4ad;opacity:0;transform:translateY(4px);transition:all .25s}
+.tok.in{opacity:1;transform:none}
+.passes{font:12.5px var(--mono);color:var(--muted);margin-top:14px;display:flex;gap:18px;flex-wrap:wrap}
+.passes b{color:var(--text)}
+.verdict{margin-top:14px;padding:10px 14px;border-radius:10px;font:13px var(--mono);opacity:0;transition:opacity .4s}
+.verdict.show{opacity:1}
+.verdict.bad{background:rgba(255,84,112,.08);border:1px solid rgba(255,84,112,.3);color:#ffb3c0}
+.verdict.good{background:rgba(92,255,138,.07);border:1px solid rgba(92,255,138,.28);color:#b8ffd0}
+.diff{margin-top:30px;overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{padding:13px 18px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px var(--mono);text-transform:uppercase;letter-spacing:1px;color:var(--muted);background:var(--panel)}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--muted);white-space:nowrap}
+.diff td:nth-child(3){color:#c9ffd9}
+
+/* architecture */
+.arch{display:grid;grid-template-columns:minmax(300px,440px) 1fr;gap:40px;align-items:start}
+@media (max-width:900px){.arch{grid-template-columns:1fr}}
+.diagram{background:#000;border:1px solid var(--line);border-radius:22px;padding:18px 10px;position:relative}
+.diagram svg{width:100%;height:auto;display:block}
+.node{cursor:pointer}
+.node rect{fill:#000;stroke-width:3;transition:all .2s}
+.node text{fill:#fff;font:500 15px var(--body);pointer-events:none}
+.node text.small{font-size:11.5px;fill:#b8bfcc}
+.node:hover rect,.node.active rect{fill:rgba(255,255,255,.06);filter:drop-shadow(0 0 10px currentColor)}
+.node:focus{outline:none}
+.node:focus-visible rect{stroke-dasharray:6 4}
+.wire{stroke:var(--n-green);stroke-width:2.4;fill:none}
+.wire-head{fill:var(--n-green)}
+.mode-switch{display:flex;width:max-content;margin:0 auto 6px;gap:4px;background:rgba(255,255,255,.06);border:1px solid var(--line-2);border-radius:10px;padding:3px}
+.mode-switch button{font:600 11.5px var(--mono);color:var(--muted);background:none;border:0;padding:6px 9px;border-radius:7px;cursor:pointer}
+.mode-switch button.on{background:var(--go);color:#001218}
+.detail{padding:30px;position:sticky;top:90px;min-height:420px}
+@media (max-width:900px){.detail{position:static;min-height:0}}
+.detail .pkg{display:inline-flex;align-items:center;gap:8px;font:500 13px var(--mono);color:var(--go-2);background:rgba(0,173,216,.08);border:1px solid rgba(0,173,216,.3);padding:5px 10px;border-radius:8px;margin-bottom:16px}
+.detail h3{font-size:28px;margin-bottom:12px}
+.detail .what{color:#c7cedb;font-size:16px}
+.detail .formula{font:14px var(--mono);background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:16px 0;color:var(--n-yellow);overflow-x:auto;white-space:nowrap}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+@media (max-width:520px){.facts{grid-template-columns:1fr}}
+.fact{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.fact small{display:block;font:500 11px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.fact div{font-size:14.5px}
+.hint{font:13px var(--mono);color:var(--dim);margin-top:14px}
+.prenote{margin-top:18px;padding:16px 18px;border-left:3px solid var(--n-pink);background:rgba(227,107,255,.05);border-radius:0 12px 12px 0;font-size:14.5px;color:#d6dbe6}
+
+/* timeline */
+.timeline{position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.step{padding:22px;position:relative;transition:transform .25s,border-color .25s}
+.step:hover{transform:translateY(-3px);border-color:var(--line-2)}
+.step .num{font:700 13px var(--mono);color:var(--dim);margin-bottom:10px;display:flex;justify-content:space-between}
+.step .num em{font-style:normal;color:var(--go-2)}
+.step h3{font-size:18px}
+.step p{font-size:14.5px;color:var(--muted);margin:0}
+.step .chip{display:inline-block;margin-top:12px;font:500 12px var(--mono);padding:3px 8px;border-radius:6px;background:var(--panel-2);color:#c7cedb}
+.step.hl{border-color:rgba(92,255,138,.4);background:linear-gradient(180deg,rgba(92,255,138,.08),rgba(255,255,255,.01))}
+.step.hl .num em{color:var(--n-green)}
+
+/* system one */
+.s1{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:900px){.s1{grid-template-columns:1fr}}
+.panel{padding:28px}
+.prompt{font:13px/1.7 var(--mono);white-space:pre-wrap;background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:12px;padding:16px;color:#cfd6e4;margin:14px 0 0;overflow-x:auto}
+.prompt .lbl{color:var(--n-green);font-weight:700}
+.prompt .ans-slot{color:#001218;background:var(--n-yellow);padding:0 4px;border-radius:4px}
+.mask-wrap{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin-top:14px}
+.mask{display:grid;grid-template-columns:repeat(14,1fr);gap:3px;width:min(100%,322px);touch-action:manipulation}
+.mask div{aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.05);transition:all .15s}
+.mask .st{background:rgba(91,124,255,.55)}
+.mask .q1{background:rgba(255,162,76,.75)}
+.mask .q2{background:rgba(92,255,138,.6)}
+.mask .q3{background:rgba(255,84,112,.65)}
+.mask .dimmed{opacity:.18}
+.mask .row-hl{outline:2px solid #fff;outline-offset:0}
+.legend{font:12.5px var(--mono);color:var(--muted);display:grid;gap:8px;min-width:170px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:8px;vertical-align:-1px}
+.eq{font:15px var(--mono);text-align:center;padding:20px 12px;margin:16px 0;background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:12px;color:var(--text);overflow-x:auto}
+.eq sub,.eq sup{font-size:.72em}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 6px}
+.frac span:first-child{border-bottom:1px solid var(--muted);padding:0 6px 3px}
+.frac span:last-child{padding:3px 6px 0}
+.guarantee{margin-top:22px;padding:22px 24px;border-radius:var(--radius);border:1px solid rgba(92,255,138,.35);background:radial-gradient(600px 200px at 0% 0%,rgba(92,255,138,.12),transparent),var(--panel)}
+.guarantee h3{color:var(--n-green)}
+.types{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+@media (max-width:640px){.types{grid-template-columns:1fr}}
+.type{padding:14px 16px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.type b{font:600 14px var(--mono);color:var(--go-2)}
+.type p{font-size:13.5px;color:var(--muted);margin:6px 0 0}
+
+/* training */
+.techs{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media (max-width:1000px){.techs{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.techs{grid-template-columns:1fr}}
+.tech{padding:22px}
+.tech .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;margin-bottom:14px;font:700 14px var(--mono)}
+.tech p{font-size:14.5px;color:var(--muted);margin:0}
+.tech .big{font:700 24px var(--display);margin:12px 0 0;letter-spacing:-.5px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:22px}
+@media (max-width:900px){.two-col{grid-template-columns:1fr}}
+.mem-row{margin:14px 0}
+.tp{margin-top:10px;font-size:14px}.tp th,.tp td{padding:9px 10px}.tp td:first-child{color:var(--text)}
+.mem-row .lab{display:flex;justify-content:space-between;font:13px var(--mono);color:#c7cedb;margin-bottom:6px}
+.mem-track{position:relative;height:14px;background:rgba(255,255,255,.05);border-radius:8px}
+.mem-fill{height:100%;border-radius:8px;width:0;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+.mem-limit{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--n-yellow);box-shadow:0 0 10px var(--n-yellow)}
+.mem-row:first-of-type{margin-top:34px}.mem-row:not(:first-of-type) .mem-limit::after{display:none}.mem-limit::after{content:"T4 · 15 GB";position:absolute;top:-20px;left:50%;transform:translateX(-50%);font:11px var(--mono);color:var(--n-yellow);white-space:nowrap}
+.skills{display:grid;gap:9px;margin-top:6px}
+.skill{display:grid;grid-template-columns:118px 1fr 64px;gap:12px;align-items:center;font:13px var(--mono)}
+.skill .name{color:#c7cedb}
+.skill .track{height:10px;background:rgba(255,255,255,.05);border-radius:6px;overflow:hidden}
+.skill .fill{height:100%;width:0;border-radius:6px;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+.skill .v{color:var(--muted);text-align:right}
+.skill .src{grid-column:1/-1;font:12px var(--body);color:var(--dim);margin:-4px 0 4px}
+@media (max-width:520px){.skill{grid-template-columns:92px 1fr 56px;font-size:12px}}
+.chart{margin-top:22px;padding:24px}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.chart .axis{stroke:rgba(255,255,255,.12)}
+.chart .gridl{stroke:rgba(255,255,255,.05)}
+.chart text{fill:var(--muted);font:11px var(--mono)}
+.chart .lg{display:flex;gap:22px;flex-wrap:wrap;font:13px var(--mono);color:#c7cedb;margin-bottom:10px}
+.chart .lg i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:8px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+@media (max-width:640px){.kpis{grid-template-columns:1fr}}
+.kpi{padding:16px 18px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.kpi b{font:700 26px var(--display);display:block}
+.kpi span{font-size:13px;color:var(--muted)}
+
+/* snake */
+.snake{display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:center}
+@media (max-width:900px){.snake{grid-template-columns:1fr}}
+.board{font:15px/1.28 var(--mono);white-space:pre;background:#000;border:1px solid var(--line);border-radius:18px;padding:22px 24px;color:#4a5263;letter-spacing:1px;justify-self:start;max-width:100%;overflow-x:auto}
+.board .H{color:var(--n-green);font-weight:700;text-shadow:0 0 10px var(--n-green)}
+.board .S{color:#3fbf6a}
+.board .A{color:var(--n-red);font-weight:700;text-shadow:0 0 10px var(--n-red)}
+.board .W{color:#39404f}
+.moves{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px;max-width:460px}
+.move{padding:12px 8px;text-align:center;border-radius:12px;border:1px solid var(--line);background:var(--panel);font:600 13px var(--mono);color:var(--muted);transition:all .2s}
+.move b{display:block;font-size:11px;color:var(--dim);margin-bottom:3px}
+.move.pick{border-color:var(--n-green);color:#001a0a;background:var(--n-green);box-shadow:0 0 24px -4px var(--n-green)}
+.move.pick b{color:#004a1c}
+.snake-meta{font:13px var(--mono);color:var(--muted);margin-top:14px;display:flex;gap:18px;flex-wrap:wrap}
+.snake-meta b{color:var(--text)}
+
+/* choices + lineage */
+.choices{display:grid;gap:10px}
+details.choice{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+details.choice summary{list-style:none;cursor:pointer;padding:16px 20px;display:grid;grid-template-columns:170px 1fr 20px;gap:16px;align-items:center}
+details.choice summary::-webkit-details-marker{display:none}
+details.choice summary .q{font:600 13px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+details.choice summary .a{font:600 16px var(--display)}
+details.choice summary .chev{color:var(--muted);transition:transform .2s}
+details.choice[open] summary .chev{transform:rotate(45deg)}
+details.choice .body{padding:0 20px 18px;display:grid;grid-template-columns:170px 1fr;gap:16px;font-size:14.5px}
+details.choice .body .x{color:var(--n-red);font:12px var(--mono);text-transform:uppercase;letter-spacing:.8px;padding-top:3px}
+details.choice .body .x.y{color:var(--n-green)}
+@media (max-width:640px){details.choice summary{grid-template-columns:1fr 20px}details.choice summary .q{grid-column:1/-1}details.choice .body{grid-template-columns:1fr;gap:4px}}
+.lineage{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+.lineage td:first-child{color:var(--text);white-space:normal}
+.lineage td code{font-size:12.5px;color:var(--go-2)}
+.lineage td:nth-child(3){white-space:nowrap;font:13px var(--mono);color:var(--muted)}
+
+/* card cta */
+.cardcta{display:grid;grid-template-columns:1.2fr .8fr;gap:30px;padding:40px;align-items:center;background:radial-gradient(700px 300px at 100% 0%,rgba(0,173,216,.18),transparent),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015))}
+@media (max-width:900px){.cardcta{grid-template-columns:1fr;padding:28px}}
+.cardcta ul{margin:0;padding-left:18px;color:#c7cedb}
+.cardcta li{margin:6px 0}
+.limits{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+@media (max-width:900px){.limits{grid-template-columns:1fr}}
+.limit{padding:18px 20px;border-radius:14px;border:1px solid var(--line);background:var(--panel)}
+.limit b{display:block;font:600 15px var(--display);margin-bottom:6px}
+.limit p{font-size:14px;color:var(--muted);margin:0}
+
+footer{border-top:1px solid var(--line);padding:40px 0 56px;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+footer svg{height:16px;width:auto;vertical-align:-3px}
+
+.arch>*,.ways>*,.s1>*,.two-col>*,.hero .grid>*,.snake>*{min-width:0}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s,transform .7s}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Golem home">
+      <svg viewBox="0 0 207 78" aria-hidden="true"><use href="#go-mark"/></svg>
+      <span class="sep"></span>
+      <span>Golem</span>
+    </a>
+    <ul>
+      <li><a href="#two-ways">Idea</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#journey">Journey</a></li>
+      <li><a href="#system-one">System One</a></li>
+      <li><a href="#training">Training</a></li>
+      <li><a href="#lineage">Papers</a></li>
+    </ul>
+    <a class="btn small primary cta" href="assets/golem-one-xl-model-card.pdf">Model card ↓</a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap">
+    <div class="grid">
+      <div>
+        <span class="eyebrow"><span class="dot"></span>Golem-One XL · training in progress</span>
+        <h1>A decision model,<br><span class="grad">built from scratch in Go.</span></h1>
+        <p class="lede">Golem is a GPT-style transformer where <strong>every layer was written by hand in Go</strong>, following the paper that introduced it. <strong>Golem-One XL</strong> reads that same network in a new way. You ask it typed questions and it returns a <strong>probability for every allowed answer</strong>. It answers every question in one pass and cannot give an answer that wasn't offered.</p>
+        <div class="actions">
+          <a class="btn primary" href="#architecture">Explore the architecture →</a>
+          <a class="btn" href="assets/golem-one-xl-model-card.pdf">Read the model card (PDF)</a>
+        </div>
+        <div class="built">
+          <svg viewBox="0 0 207 78" aria-hidden="true"><use href="#go-mark"/></svg>
+          <span>Standard library only · Go assembly for ARM64 NEON · CUDA C++ for the GPU engine</span>
+        </div>
+      </div>
+
+      <div class="card code-card reveal" aria-label="Golem-One Go API example">
+        <div class="bar"><i></i><i></i><i></i><em>decide.go</em></div>
+<pre><span class="n">answers</span>, _ := <span class="f">decide.New</span>(model, tok).<span class="f">Decide</span>(ticket,
+  <span class="k">map</span>[<span class="t">string</span>]<span class="t">decide.Question</span>{
+    <span class="s">"category"</span>: <span class="f">decide.Choice</span>(<span class="s">"What is this ticket about?"</span>,
+        opt(<span class="s">"billing"</span>), opt(<span class="s">"bug"</span>),
+        opt(<span class="s">"delivery"</span>), opt(<span class="s">"account"</span>)),
+    <span class="s">"angry"</span>:    <span class="f">decide.YesNo</span>(<span class="s">"Is the customer upset?"</span>),
+    <span class="s">"urgency"</span>:  <span class="f">decide.Score</span>(<span class="s">"How urgent is it?"</span>, <span class="s">"low"</span>, <span class="s">"medium"</span>, <span class="s">"high"</span>),
+})
+<span class="k">if</span> answers[<span class="s">"category"</span>].Confidence &lt; <span class="n">0.5</span> { <span class="f">routeToHuman</span>() }</pre>
+        <div class="answers" id="hero-answers">
+          <h4>One pass · three typed answers</h4>
+          <div class="ans"><div class="q"><span>category</span><span>choice · 4</span></div><div class="bars" data-bars='[["billing",0.61],["bug",0.29],["delivery",0.08],["account",0.02]]'></div></div>
+          <div class="ans"><div class="q"><span>angry</span><span>yes / no</span></div><div class="bars" data-bars='[["yes",0.89],["no",0.11]]'></div></div>
+          <div class="ans"><div class="q"><span>urgency</span><span>score · 3</span></div><div class="bars" data-wrong="1" data-bars='[["low",0.72],["medium",0.13],["high",0.14]]'></div></div>
+          <p class="note">Real output (Report 9): the golem-medium chat model <em>before</em> any decision training, on a double-charge ticket. Category and mood are right. Urgency is wrong, and shows the first-option bias that training removes.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats reveal">
+      <div class="stat"><b>1.56B</b><span>parameters, GPT-2 XL shape, exact count</span></div>
+      <div class="stat"><b>0</b><span>ML frameworks: every layer is our Go</span></div>
+      <div class="stat"><b>112</b><span>GFLOP/s per core, hand-written NEON kernel</span></div>
+      <div class="stat"><b>28</b><span>open, human-labeled datasets in 13 skills</span></div>
+      <div class="stat"><b>11</b><span>research-style reports, one per component</span></div>
+    </div>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="go-mark" viewBox="0 0 207 78"><g fill="#00acd7" fill-rule="evenodd"><path d="m16.2 24.1c-.4 0-.5-.2-.3-.5l2.1-2.7c.2-.3.7-.5 1.1-.5h35.7c.4 0 .5.3.3.6l-1.7 2.6c-.2.3-.7.6-1 .6z"/><path d="m1.1 33.3c-.4 0-.5-.2-.3-.5l2.1-2.7c.2-.3.7-.5 1.1-.5h45.6c.4 0 .6.3.5.6l-.8 2.4c-.1.4-.5.6-.9.6z"/><path d="m25.3 42.5c-.4 0-.5-.3-.3-.6l1.4-2.5c.2-.3.6-.6 1-.6h20c.4 0 .6.3.6.7l-.2 2.4c0 .4-.4.7-.7.7z"/><g transform="translate(55)"><path d="m74.1 22.3c-6.3 1.6-10.6 2.8-16.8 4.4-1.5.4-1.6.5-2.9-1-1.5-1.7-2.6-2.8-4.7-3.8-6.3-3.1-12.4-2.2-18.1 1.5-6.8 4.4-10.3 10.9-10.2 19 .1 8 5.6 14.6 13.5 15.7 6.8.9 12.5-1.5 17-6.6.9-1.1 1.7-2.3 2.7-3.7-3.6 0-8.1 0-19.3 0-2.1 0-2.6-1.3-1.9-3 1.3-3.1 3.7-8.3 5.1-10.9.3-.6 1-1.6 2.5-1.6h36.4c-.2 2.7-.2 5.4-.6 8.1-1.1 7.2-3.8 13.8-8.2 19.6-7.2 9.5-16.6 15.4-28.5 17-9.8 1.3-18.9-.6-26.9-6.6-7.4-5.6-11.6-13-12.7-22.2-1.3-10.9 1.9-20.7 8.5-29.3 7.1-9.3 16.5-15.2 28-17.3 9.4-1.7 18.4-.6 26.5 4.9 5.3 3.5 9.1 8.3 11.6 14.1.6.9.2 1.4-1 1.7z"/><path d="m107.2 77.6c-9.1-.2-17.4-2.8-24.4-8.8-5.9-5.1-9.6-11.6-10.8-19.3-1.8-11.3 1.3-21.3 8.1-30.2 7.3-9.6 16.1-14.6 28-16.7 10.2-1.8 19.8-.8 28.5 5.1 7.9 5.4 12.8 12.7 14.1 22.3 1.7 13.5-2.2 24.5-11.5 33.9-6.6 6.7-14.7 10.9-24 12.8-2.7.5-5.4.6-8 .9zm23.8-40.4c-.1-1.3-.1-2.3-.3-3.3-1.8-9.9-10.9-15.5-20.4-13.3-9.3 2.1-15.3 8-17.5 17.4-1.8 7.8 2 15.7 9.2 18.9 5.5 2.4 11 2.1 16.3-.6 7.9-4.1 12.2-10.5 12.7-19.1z" fill-rule="nonzero"/></g></g></symbol>
+</defs></svg>
+
+<!-- TWO WAYS -->
+<section id="two-ways">
+  <div class="wrap">
+    <div class="kicker">The idea</div>
+    <h2>One transformer, two ways to read it.</h2>
+    <p class="sub">A token-by-token model answers by writing text: one full pass per token, 50,257 possible tokens each time, and nothing stops it writing an answer that isn't on the list. Golem-One reads the <em>same weights</em> differently. It reads the state once, answers every question in a single further pass, and scores only the answers you declared.</p>
+
+    <div class="toggle">
+      <button class="on" id="replay">▶ Replay both</button>
+    </div>
+
+    <div class="ways">
+      <div class="card way gen">
+        <span class="tag">TOKEN BY TOKEN</span>
+        <h3>Generate, then hope it parses</h3>
+        <div class="state"><b>State:</b> "Hi, I was charged twice for my order #4471 yesterday. I need the second payment refunded today."<br><b>Prompt:</b> Which team: billing, bug, delivery or account?</div>
+        <div class="stream" id="gen-stream" aria-live="polite"></div>
+        <div class="passes"><span>passes: <b id="gen-passes">0</b></span><span>vocab scored / step: <b>50,257</b></span><span>uncertainty: <b>lost</b></span></div>
+        <div class="verdict bad" id="gen-verdict">✗ "payments" is not one of the four teams. The program has to parse and validate it, then retry.</div>
+      </div>
+      <div class="card way one">
+        <span class="tag">GOLEM-ONE · SYSTEM ONE</span>
+        <h3>Score the declared answers, all at once</h3>
+        <div class="state"><b>State:</b> the same ticket, read once into the attention cache<br><b>Questions:</b> category · angry · urgency, in one pass</div>
+        <div class="bars" id="one-bars" data-bars='[["billing",0.61],["bug",0.29],["delivery",0.08],["account",0.02]]'></div>
+        <div class="passes"><span>passes: <b>state + 1</b></span><span>rows scored: <b>K = 4</b></span><span>confidence: <b>0.32</b></span></div>
+        <div class="verdict good" id="one-verdict">✓ An answer that wasn't declared is impossible by construction. The full distribution comes back.</div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:12px">Left: an illustration of generated text. Right: the real zero-shot category probabilities from Report 9. The confidence is 1 − H(p)/log K.</p>
+
+    <div class="diff">
+      <table>
+        <thead><tr><th></th><th>Token-by-token Golem</th><th>Golem-One</th></tr></thead>
+        <tbody>
+          <tr><td>Output</td><td>free text</td><td>a probability for each declared option</td></tr>
+          <tr><td>Passes</td><td>one per generated token, sequential</td><td>the state once, then one pass for all questions</td></tr>
+          <tr><td>Output layer</td><td>50,257 rows every step</td><td>K label rows only</td></tr>
+          <tr><td>Validity</td><td>must be parsed; can be off-list or malformed</td><td>guaranteed by construction</td></tr>
+          <tr><td>Randomness</td><td>sampled</td><td>none: the distribution itself is returned</td></tr>
+          <tr><td>Uncertainty</td><td>lost</td><td>full distribution + confidence</td></tr>
+          <tr><td>Training target</td><td>every token of the reply</td><td>the correct option's label</td></tr>
+          <tr><td>Network</td><td>the Golem transformer</td><td><b>the same</b> transformer and weights</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="wrap">
+    <div class="kicker">Architecture · click any block</div>
+    <h2>Every box, hand-written in Go.</h2>
+    <p class="sub">The project started from one diagram of a decoder-only transformer, with one rule: build each box by hand, in order, following the paper it comes from, and prove it correct before moving on. Click a block to see its Go package, the research it follows, and how it was checked.</p>
+
+    <div class="arch">
+      <div class="diagram">
+        <div class="mode-switch" role="group" aria-label="Output mode">
+          <button class="on" data-mode="gen">next token</button>
+          <button data-mode="one">Golem-One</button>
+        </div>
+        <svg viewBox="0 0 420 890" role="img" aria-label="Golem transformer diagram">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="wire-head"/></marker></defs>
+<text x="210" y="40" text-anchor="middle" fill="#fff" style="font:600 16px var(--display)" id="out-label">Output probabilities</text>
+<g class="node" tabindex="0" data-id="softmax" style="color:var(--n-blue)"><rect x="115" y="70" width="190" height="40" rx="9" stroke="var(--n-blue)"/><text x="210.0" y="95.0" text-anchor="middle" id="sm-text">Softmax</text></g>
+<path class="wire" d="M210 70 V50" marker-end="url(#ah)"/>
+<g class="node" tabindex="0" data-id="linear" style="color:var(--n-yellow)"><rect x="115" y="140" width="190" height="40" rx="9" stroke="var(--n-yellow)"/><text x="210.0" y="165.0" text-anchor="middle">Linear (tied to Wₑ)</text></g>
+<path class="wire" d="M210 140 V113" marker-end="url(#ah)"/>
+<g class="node" tabindex="0" data-id="lnf" style="color:var(--n-pink)"><rect x="115" y="210" width="190" height="36" rx="9" stroke="var(--n-pink)"/><text x="210.0" y="233.0" text-anchor="middle">Final Layer Norm</text></g>
+<path class="wire" d="M210 210 V183" marker-end="url(#ah)"/>
+<rect x="60" y="268" width="300" height="410" rx="22" fill="none" stroke="var(--n-green)" stroke-width="3"/>
+<text x="22" y="480" fill="#fff" style="font:600 20px var(--display)">N×</text>
+<circle cx="210" cy="300" r="12" fill="#000" stroke="var(--n-green)" stroke-width="2.4"/><text x="210" y="306" text-anchor="middle" fill="#fff" style="font:600 17px var(--body)">+</text>
+<path class="wire" d="M210 288 V249" marker-end="url(#ah)"/>
+<g class="node" tabindex="0" data-id="ffn" style="color:var(--n-yellow)"><rect x="115" y="335" width="190" height="54" rx="9" stroke="var(--n-yellow)"/><text x="210.0" y="359.0" text-anchor="middle">Feed Forward</text><text x="210.0" y="377.0" text-anchor="middle" class="small">4× width · GELU</text></g>
+<path class="wire" d="M210 335 V315" marker-end="url(#ah)"/>
+<g class="node" tabindex="0" data-id="ln" style="color:var(--n-pink)"><rect x="115" y="415" width="190" height="34" rx="9" stroke="var(--n-pink)"/><text x="210.0" y="437.0" text-anchor="middle">Layer Norm</text></g>
+<path class="wire" d="M210 415 V392" marker-end="url(#ah)"/>
+<circle cx="210" cy="490" r="12" fill="#000" stroke="var(--n-green)" stroke-width="2.4"/><text x="210" y="496" text-anchor="middle" fill="#fff" style="font:600 17px var(--body)">+</text>
+<path class="wire" d="M210 478 V452" marker-end="url(#ah)"/>
+<g class="node" tabindex="0" data-id="attention" style="color:var(--n-cyan)"><rect x="115" y="525" width="190" height="54" rx="9" stroke="var(--n-cyan)"/><text x="210.0" y="549.0" text-anchor="middle">Causal Multi-Head</text><text x="210.0" y="567.0" text-anchor="middle">Attention</text></g>
+<path class="wire" d="M210 525 V505" marker-end="url(#ah)"/>
+<g class="node" tabindex="0" data-id="ln" style="color:var(--n-pink)"><rect x="115" y="605" width="190" height="34" rx="9" stroke="var(--n-pink)"/><text x="210.0" y="627.0" text-anchor="middle">Layer Norm</text></g>
+<path class="wire" d="M210 605 V582" marker-end="url(#ah)"/>
+<path class="wire" d="M210 713 V642" marker-end="url(#ah)"/>
+<path class="wire" d="M210 662 H85 V490 H195" marker-end="url(#ah)"/>
+<path class="wire" d="M210 465 H85 V300 H195" marker-end="url(#ah)"/>
+<circle cx="210" cy="662" r="3.5" fill="var(--n-green)"/><circle cx="210" cy="465" r="3.5" fill="var(--n-green)"/>
+<circle cx="210" cy="725" r="12" fill="#000" stroke="var(--n-green)" stroke-width="2.4"/><text x="210" y="731" text-anchor="middle" fill="#fff" style="font:600 17px var(--body)">+</text>
+<g class="node" tabindex="0" data-id="positions" style="color:var(--n-green)"><rect x="318" y="705" width="94" height="40" rx="20" stroke="var(--n-green)"/><text x="365.0" y="722.0" text-anchor="middle" class="small" style="fill:#fff">Positional</text><text x="365.0" y="740.0" text-anchor="middle" class="small">encoding Wₚ</text></g>
+<path class="wire" d="M318 725 H225" marker-end="url(#ah)"/>
+<g class="node" tabindex="0" data-id="embedding" style="color:var(--n-red)"><rect x="115" y="765" width="190" height="46" rx="9" stroke="var(--n-red)"/><text x="210.0" y="793.0" text-anchor="middle">Embedding Layer</text></g>
+<path class="wire" d="M210 765 V740" marker-end="url(#ah)"/>
+<g class="node" tabindex="0" data-id="tokenizer" style="color:var(--go)"><rect x="115" y="840" width="190" height="36" rx="9" stroke="var(--go)"/><text x="210.0" y="863.0" text-anchor="middle">BPE tokenizer · text</text></g>
+<path class="wire" d="M210 840 V814" marker-end="url(#ah)"/>
+</svg>
+      </div>
+
+      <div class="card detail" id="detail" aria-live="polite">
+        <span class="pkg" id="d-pkg">internal/attention</span>
+        <h3 id="d-title">Causal multi-head attention</h3>
+        <p class="what" id="d-what"></p>
+        <div class="formula" id="d-formula"></div>
+        <div class="facts">
+          <div class="fact"><small>Follows</small><div id="d-paper"></div></div>
+          <div class="fact"><small>In Golem-One XL</small><div id="d-xl"></div></div>
+          <div class="fact" style="grid-column:1/-1"><small>How we know it's right</small><div id="d-check"></div></div>
+        </div>
+        <p class="hint">↳ Tab through the blocks with the keyboard, or click one in the diagram.</p>
+      </div>
+    </div>
+
+    <div class="prenote"><b>Why LayerNorm comes <em>before</em> each sub-layer.</b> The original diagram put LayerNorm <em>after</em> attention and after the feed-forward network. That is the post-LN layout of the 2017 transformer and GPT-1. Golem moved it before each sub-layer (pre-LN, as in GPT-2) for two reasons: deep stacks train more stably, and it is the only way OpenAI's released GPT-2 weights load unchanged. Golem-One depends on those weights.</div>
+  </div>
+</section>
+
+<!-- JOURNEY -->
+<section id="journey">
+  <div class="wrap">
+    <div class="kicker">The journey</div>
+    <h2>Eleven reports, from an empty Go module to System One.</h2>
+    <p class="sub">Every stage came with a research-style write-up covering method, implementation, experiments and limitations, with the measurements that caught our own mistakes.</p>
+    <div class="timeline" id="timeline"></div>
+  </div>
+</section>
+
+<!-- SYSTEM ONE -->
+<section id="system-one">
+  <div class="wrap">
+    <div class="kicker">How Golem-One works</div>
+    <h2>From next-token prediction to System One.</h2>
+    <p class="sub">The idea comes from TypeSafe AI's <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev" rel="noopener">Jev</a>, which they call a "System One" model after the fast, intuitive <em>system 1</em> of dual-process psychology. We adopted its interface and its guarantees, but not its model. Instead of a new network, Golem-One gets them from <b>three changes in how the existing transformer is read</b>.</p>
+
+    <div class="s1">
+      <div class="card panel">
+        <div class="kicker" style="color:var(--n-yellow)">① A label per option</div>
+        <h3>Every option is exactly one token</h3>
+        <p class="muted">Options are listed under the labels A–Z, and 1–255 beyond that. Each label is a single GPT-2 token, and the prompt ends at <code>Answer:</code>. Training and inference use the exact same tokens.</p>
+<div class="prompt">&lt;|endoftext|&gt;State:
+Hi, I was charged twice for my order #4471 yesterday…
+
+Question: What is this ticket about?
+Options:
+<span class="lbl">A)</span> billing: payments, charges, refunds
+<span class="lbl">B)</span> bug: something in the app is broken
+<span class="ans-slot">Answer:</span></div>
+        <div class="types">
+          <div class="type"><b>YesNo</b><p>p(yes), p(no)</p></div>
+          <div class="type"><b>Choice</b><p>a probability per named option</p></div>
+          <div class="type"><b>Score</b><p>ordered levels + expected level</p></div>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="kicker" style="color:var(--n-orange)">② The segment mask</div>
+        <h3>Read the state once, answer every question in parallel</h3>
+        <p class="muted">The state fills the attention cache once. Then every question runs in one pass as its own segment: it sees the whole state and its own tokens, and never another question. Each result matches a separate forward pass to 10⁻⁴. <b style="color:var(--text)">Hover or tap a row.</b></p>
+        <div class="mask-wrap">
+          <div class="mask" id="mask" aria-label="Attention mask for a 5-token state and three questions"></div>
+          <div class="legend">
+            <span><i style="background:rgba(91,124,255,.8)"></i>state (5 tokens)</span>
+            <span><i style="background:rgba(255,162,76,.9)"></i>question 1</span>
+            <span><i style="background:rgba(92,255,138,.8)"></i>question 2</span>
+            <span><i style="background:rgba(255,84,112,.85)"></i>question 3</span>
+            <span style="margin-top:6px" id="mask-read">row = token that looks<br>column = token looked at</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card panel" style="margin-top:22px">
+      <div class="kicker" style="color:var(--n-green)">③ The restricted readout</div>
+      <h3>Score only the K declared answers, never the 50,257 others</h3>
+      <p class="muted">At each question's <code>Answer:</code> position a generator would score every token in the vocabulary. Golem-One multiplies the final hidden state <i>h</i> only by the tied embedding rows <i>e</i> of its option labels, and renormalizes:</p>
+      <div class="eq">p(k) = <span class="frac"><span>exp(e<sub>ℓₖ</sub>ᵀ h / T)</span><span>Σ<sub>j=1..K</sub> exp(e<sub>ℓⱼ</sub>ᵀ h / T)</span></span> &nbsp;&nbsp;&nbsp; c = 1 − H(p) / log K</div>
+      <p class="muted">For a 4-option question on the medium model, the readout costs 4 × 1,024 multiply-adds instead of 51 million. <i>T</i> is a temperature fitted on held-out data. It changes how sure the model says it is, never which answer it picks.</p>
+      <div class="guarantee">
+        <h3>Validity by construction</h3>
+        <p style="margin:0;color:#d7ffe4">Probability exists only for declared options. No text is generated, so there is nothing to parse, and whatever the weights are, the model cannot produce an answer that wasn't offered. <b>Training makes the answers correct; the construction already makes them valid.</b></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRAINING -->
+<section id="training">
+  <div class="wrap">
+    <div class="kicker">Golem-One XL · training</div>
+    <h2>A 1.56B model on two free GPUs.</h2>
+    <p class="sub">At this scale, a fine-tuned model's quality depends mostly on two things: the size of the pre-trained model and the amount of good data. So we chose GPT-2's largest shape. Fully fine-tuning it needs about 25 GB for weights and optimizer state, but a free Kaggle T4 has 15 GB. Four additions to Golem's own CUDA engine close that gap.</p>
+
+    <div class="techs">
+      <div class="card tech"><div class="ic" style="background:rgba(0,173,216,.12);color:var(--go-2)">fp16</div><h3>Mixed precision</h3><p>Matrix products run on tensor cores in fp16. Master weights, gradients and optimizer state stay fp32, and dynamic loss scaling prevents underflow.</p><div class="big" style="color:var(--go-2)">2.6–2.9× faster</div></div>
+      <div class="card tech"><div class="ic" style="background:rgba(227,107,255,.12);color:var(--n-pink)">r16</div><h3>LoRA</h3><p>Every linear weight is frozen, kept in fp16 only, and adapted by a rank-16 product. Checkpoints merge back into ordinary Golem weights.</p><div class="big" style="color:var(--n-pink)">1.33% trained</div></div>
+      <div class="card tech"><div class="ic" style="background:rgba(92,255,138,.1);color:var(--n-green)">K</div><h3>Options-only loss</h3><p>On decision rows the softmax runs over the answer labels only, exactly as the model is read. Training optimizes what is served.</p><div class="big" style="color:var(--n-green)">train = serve</div></div>
+      <div class="card tech"><div class="ic" style="background:rgba(255,226,92,.1);color:var(--n-yellow)">×2</div><h3>Two GPUs</h3><p>Micro-batches are split across both T4s and the gradients summed before each identical update. Tested to match a one-GPU run.</p><div class="big" style="color:var(--n-yellow)">2,180 tok/s</div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card panel">
+        <h3>GPU memory for XL</h3>
+        <p class="muted" style="font-size:14.5px">Computed from the engine's allocator, for sequences of up to 384 tokens.</p>
+        <div id="mem"></div>
+      </div>
+      <div class="card panel">
+        <h3>What it learns from</h3>
+        <p class="muted" style="font-size:14.5px">549,223 human-labeled questions from 28 open datasets, plus 39,740 human explanations and 60,000 Snake positions. Option order is shuffled so the model has to <em>read</em> the options.</p>
+        <div class="skills" id="skills"></div>
+      </div>
+    </div>
+
+    <div class="card chart">
+      <h3>Validation loss, every 1,000 steps</h3>
+      <div class="lg"><span><i style="background:var(--go)"></i>held-out decisions (options-only NLL)</span><span><i style="background:var(--n-orange)"></i>held-out conversations</span></div>
+      <svg id="loss" viewBox="0 0 900 320" role="img" aria-label="Validation loss chart"></svg>
+      <div class="kpis">
+        <div class="kpi"><b style="color:var(--go-2)">1.599 → 0.685</b><span>decision loss, GPT-2 XL before training → step 36,000</span></div>
+        <div class="kpi"><b style="color:var(--n-green)">~20% → ~50%</b><span>average probability given to the correct answer</span></div>
+        <div class="kpi"><b style="color:var(--n-yellow)">37,224 / 81,122</b><span>steps done (46%) · 25 September 2026</span></div>
+      </div>
+      <p class="note" style="margin-top:14px">The conversation loss rises slightly, from 1.94 to 2.14. That is expected: this run spends all its compute on decisions and contains no conversation data.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SNAKE -->
+<section id="snake">
+  <div class="wrap">
+    <div class="snake">
+      <div>
+        <div class="board" id="board" aria-label="Snake board as the model reads it"></div>
+      </div>
+      <div>
+        <div class="kicker">A game is just another decision</div>
+        <h2>Golem-One plays Snake.</h2>
+        <p class="sub" style="margin-bottom:18px">The board on the left is exactly the state text Golem-One reads: one character per cell. The question is <i>"Which way should the head move next, to eat the apple without ever crashing?"</i> and the options are up, down, left and right. Snake isn't a separate model. It is one of Golem-One's skills, trained in the same XL run.</p>
+        <div class="moves" id="moves"></div>
+        <div class="snake-meta"><span>apples: <b id="sn-score">0</b></span><span>moves: <b id="sn-steps">0</b></span><span>highlighted: the expert's label, the training target</span></div>
+        <p class="note" style="margin-top:14px">This demo runs a re-creation of the expert player in your browser. Its rule is to take the shortest path to the apple only if the tail is still reachable afterwards, and otherwise to follow the tail. After training, Golem-One keeps learning from its own games, updating its own weights with REINFORCE through the Golem API.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHOICES -->
+<section id="choices">
+  <div class="wrap">
+    <div class="kicker">Design choices</div>
+    <h2>What we chose, and what we set aside.</h2>
+    <p class="sub">Every choice was a trade-off, and each one is recorded in the reports.</p>
+    <div class="choices" id="choices-list"></div>
+  </div>
+</section>
+
+<!-- LINEAGE -->
+<section id="lineage">
+  <div class="wrap">
+    <div class="kicker">Standing on shoulders</div>
+    <h2>Every part, and the paper it follows.</h2>
+    <p class="sub">None of these ideas is ours alone. What is ours is the implementation: each paper re-derived and written in Go, with its gradients and speed-ups verified against a reference.</p>
+    <div class="lineage">
+      <table>
+        <thead><tr><th>Golem component</th><th>Research it follows</th><th>Report</th></tr></thead>
+        <tbody id="lineage-body"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- CARD -->
+<section id="card">
+  <div class="wrap">
+    <div class="card cardcta">
+      <div>
+        <div class="kicker">Model card</div>
+        <h2 style="margin-bottom:14px">Golem-One XL: the full story, in 13 pages.</h2>
+        <ul>
+          <li>Every component we built in Go, the paper it follows, and how it was checked</li>
+          <li>How a token-by-token assistant became a System One decision model</li>
+          <li>The training recipe, data, progress, and calibration plan</li>
+          <li>Intended use, limitations, and the full list of references</li>
+        </ul>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:flex-start">
+        <a class="btn primary" href="assets/golem-one-xl-model-card.pdf">Download the model card (PDF)</a>
+        <span class="muted" style="font-size:13.5px">Technical Report 11 · September 2026</span>
+      </div>
+    </div>
+
+    <div class="limits">
+      <div class="limit"><b>Not evaluated yet</b><p>Accuracy, calibration and results on held-out task families will be published when training finishes. For now there are only training losses.</p></div>
+      <div class="limit"><b>Valid isn't correct</b><p>Every answer is one of the declared options, but a confident wrong answer is still possible. Low-confidence answers are meant to go to a person.</p></div>
+      <div class="limit"><b>A research model</b><p>English only, with biases inherited from GPT-2's web data and the labeled datasets. It is not for consequential decisions about people.</p></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>🗿 Golem: built layer by layer in <svg viewBox="0 0 207 78" aria-label="Go"><use href="#go-mark"/></svg></span>
+    <span class="muted">The Go logo is a trademark of Google LLC. Golem is an independent project.</span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  function renderBars(el) {
+    const data = JSON.parse(el.dataset.bars);
+    const wrong = el.dataset.wrong === "1";
+    const top = Math.max(...data.map(d => d[1]));
+    el.innerHTML = data.map(([n, p]) => `
+      <div class="bar-row${p === top ? " top" : ""}${p === top && wrong ? " wrong" : ""}">
+        <span>${n}</span><div class="track"><div class="fill" data-w="${p * 100}"></div></div><span>${p.toFixed(2)}</span>
+      </div>`).join("");
+  }
+  function fillBars(el, on = true) {
+    $$(".fill", el).forEach(f => f.style.width = on ? f.dataset.w + "%" : "0");
+  }
+  $$("[data-bars]").forEach(renderBars);
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add("in");
+      if (e.target.dataset.onview) actions[e.target.dataset.onview]?.();
+      io.unobserve(e.target);
+    });
+  }, { threshold: .18 });
+  const actions = {};
+
+  $$(".reveal").forEach(el => io.observe(el));
+  setTimeout(() => fillBars($("#hero-answers")), 350);
+
+  const genText = ["The", " customer", " was", " charged", " twice", ",", " so", " this", " goes", " to", ":", " payments"];
+  let genTimer;
+  function playWays() {
+    clearInterval(genTimer);
+    const stream = $("#gen-stream");
+    stream.innerHTML = "";
+    $("#gen-passes").textContent = "0";
+    $("#gen-verdict").classList.remove("show");
+    $("#one-verdict").classList.remove("show");
+    fillBars($("#one-bars"), false);
+    setTimeout(() => { fillBars($("#one-bars")); $("#one-verdict").classList.add("show"); }, 450);
+    let i = 0;
+    genTimer = setInterval(() => {
+      if (i >= genText.length) { clearInterval(genTimer); $("#gen-verdict").classList.add("show"); return; }
+      const t = document.createElement("span");
+      t.className = "tok";
+      t.textContent = genText[i].replace(/^ /, "␣");
+      stream.appendChild(t);
+      requestAnimationFrame(() => t.classList.add("in"));
+      $("#gen-passes").textContent = String(++i);
+    }, 330);
+  }
+  $("#replay").addEventListener("click", playWays);
+  const waysEl = $(".ways"); waysEl.dataset.onview = "ways"; actions.ways = playWays; io.observe(waysEl);
+
+  const comps = {
+    tokenizer: {
+      pkg: "internal/tokenizer", title: "Byte-level BPE tokenizer",
+      what: "Text becomes integers. The base alphabet is the 256 bytes, so any string can be encoded. The most frequent adjacent pairs are then merged, 50,000 times, into a vocabulary of 50,257 tokens.",
+      formula: "\"Golem decides\" → [38, 18045, 13267]",
+      paper: "Sennrich et al., 2016 (BPE); GPT-2's byte-level variant, 2019",
+      xl: "V = 50,257, GPT-2's exact vocabulary and merges",
+      check: "Reproduces OpenAI's encoder.py exactly, including its pre-tokenization regex and byte-to-Unicode map."
+    },
+    embedding: {
+      pkg: "internal/embedding", title: "Token embedding",
+      what: "Each token id selects one row of the embedding matrix Wₑ. The same matrix is reused, transposed, as the output layer at the top of the network.",
+      formula: "h₀ = U·Wₑ + Wₚ",
+      paper: "GPT-1 (Radford et al., 2018), the formula exactly",
+      xl: "Wₑ: 50,257 × 1,600 = 80.4M parameters",
+      check: "Backward pass verified against finite differences. Embedding 128 tokens at d = 768 takes about 77 µs on an M3 Pro."
+    },
+    positions: {
+      pkg: "internal/embedding", title: "Positional encoding",
+      what: "Attention alone doesn't know word order, so a learned vector for each position is added to each token. The fixed sine/cosine encoding of the original transformer is available as an option.",
+      formula: "PE(pos, 2i) = sin(pos / 10000^(2i/d))   (optional)",
+      paper: "Learned positions: GPT-1/GPT-2. Sinusoidal: Vaswani et al., 2017",
+      xl: "Wₚ: 1,024 positions × 1,600",
+      check: "Both variants tested. Golem-One's segment mask renumbers positions so that each question sits right after the state."
+    },
+    ln: {
+      pkg: "internal/nn · internal/block", title: "Layer Norm + residual (pre-LN)",
+      what: "LayerNorm rescales each token vector to zero mean and unit variance, then applies a learned gain and bias. Each sub-layer is wrapped as x + f(LN(x)), so information can always flow straight through the residual path.",
+      formula: "LN(x) = γ ⊙ (x − μ) / √(σ² + ε) + β",
+      paper: "Ba, Kiros & Hinton, 2016; pre-LN layout from GPT-2",
+      xl: "2 LayerNorms per block × 48 blocks, plus the final one",
+      check: "Analytic backward pass checked against finite differences. In a 12-block stack without it, attention barely changed the vectors (std 0.028); with pre-LN every sub-layer contributes."
+    },
+    attention: {
+      pkg: "internal/attention", title: "Causal multi-head attention",
+      what: "Each token forms a query, a key and a value, and gathers information from the tokens before it. The causal mask stops any token from seeing the future. The work is split across heads that attend independently. Golem computes it in blocks, FlashAttention-style, so the full T×T matrix is never stored.",
+      formula: "Attention(Q,K,V) = softmax(QKᵀ/√dₖ + M)·V",
+      paper: "Vaswani et al., 2017; head layout from GPT-1/GPT-2",
+      xl: "25 heads × 64 dims; 10.2M parameters per block",
+      check: "Hand-derived backward pass verified numerically. Changing a later token leaves every earlier output bit-for-bit identical, so the mask is exact."
+    },
+    ffn: {
+      pkg: "internal/ffn", title: "Feed-forward network",
+      what: "A two-layer perceptron applied to every position on its own. It expands each vector 4×, applies GELU, and projects back. It holds two thirds of each block's parameters.",
+      formula: "FFN(x) = GELU(x·W₁ + b₁)·W₂ + b₂",
+      paper: "GPT-1's position-wise FFN; GELU (Hendrycks & Gimpel, 2016), tanh form",
+      xl: "1,600 → 6,400 → 1,600; 20.5M of the block's 30.7M parameters",
+      check: "GELU matches the exact Gaussian form within 4.7 × 10⁻⁴. With it, 12 blocks come to exactly 124,439,808 parameters, the same as GPT-2 small."
+    },
+    lnf: {
+      pkg: "internal/golem", title: "Stacking N blocks + final LayerNorm",
+      what: "N identical blocks are stacked, and a final LayerNorm normalizes the last hidden state. Residual projections start scaled by 1/√(2N), so the residual stream doesn't grow with depth.",
+      formula: "h_N = LN_f(Block_N(… Block_1(h₀)))",
+      paper: "GPT-2 (Radford et al., 2019)",
+      xl: "N = 48 blocks · d = 1,600 · 1,557,611,200 parameters in total",
+      check: "All four sizes match OpenAI's released GPT-2 parameter counts exactly, and a gradient check runs through the entire network."
+    },
+    linear: {
+      pkg: "internal/golem", title: "Linear head, tied to Wₑ",
+      what: "The final hidden state is multiplied by the transposed embedding matrix to get one score per vocabulary token. Tying the head to Wₑ saves 80M parameters and helps language modeling.",
+      formula: "logits = h · Wₑᵀ",
+      paper: "Weight tying: Press & Wolf, 2017; GPT-2",
+      xl: "Golem-One reads only the K label rows of Wₑ",
+      check: "The untrained model starts at the loss theory predicts (6.12 nats for golem-small)."
+    },
+    softmax: {
+      pkg: "internal/nn", title: "Softmax + cross-entropy",
+      what: "Softmax turns scores into probabilities over all 50,257 tokens, and cross-entropy against the true next token is the training loss. Generation samples from this distribution, one token at a time.",
+      formula: "p = softmax(logits) · L = −log p(y)",
+      paper: "GPT-1/GPT-2 language modeling objective",
+      xl: "Used for text; replaced by the restricted readout for decisions",
+      check: "Numerically stable, with a fused backward pass verified against finite differences."
+    },
+    readout: {
+      pkg: "internal/decide", title: "Golem-One restricted readout",
+      what: "In Golem-One mode the 50,257-way softmax is replaced. At each question's Answer: slot, only the K option-label rows of Wₑ are scored and then renormalized. Any other answer has no probability at all.",
+      formula: "p(k) = softmax_k(e_ℓₖᵀ h / T),  k = 1..K",
+      paper: "Interface: TypeSafe AI's Jev (System One). Label scoring as in MMLU-style evaluation",
+      xl: "Trained with the options-only loss, so training = serving",
+      check: "Scoring all questions at once through the segment mask reproduces separate forward passes to 10⁻⁴."
+    }
+  };
+  let mode = "gen";
+  function show(id) {
+    if (mode === "one" && id === "softmax") id = "readout";
+    const c = comps[id]; if (!c) return;
+    $("#d-pkg").textContent = c.pkg;
+    $("#d-title").textContent = c.title;
+    $("#d-what").textContent = c.what;
+    $("#d-formula").textContent = c.formula;
+    $("#d-paper").textContent = c.paper;
+    $("#d-xl").textContent = c.xl;
+    $("#d-check").textContent = c.check;
+    $$(".node").forEach(n => n.classList.toggle("active", n.dataset.id === id || (id === "readout" && n.dataset.id === "softmax")));
+  }
+  $$(".node").forEach(n => {
+    if (!n.querySelector("text")) { n.removeAttribute("tabindex"); return; }
+    n.setAttribute("role", "button");
+    n.addEventListener("click", () => show(n.dataset.id));
+    n.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(n.dataset.id); } });
+  });
+  $$(".mode-switch button").forEach(b => b.addEventListener("click", () => {
+    mode = b.dataset.mode;
+    $$(".mode-switch button").forEach(x => x.classList.toggle("on", x === b));
+    $("#sm-text").textContent = mode === "one" ? "Readout over K labels" : "Softmax";
+    $("#out-label").textContent = mode === "one" ? "Typed answers + probabilities" : "Output probabilities";
+    show(mode === "one" ? "readout" : "softmax");
+  }));
+  show("attention");
+
+  const steps = [
+    ["01", "The input layer", "Byte-level BPE tokenizer, token embeddings and positional encoding.", "tokenizer · embedding"],
+    ["02", "Causal attention", "Masked multi-head self-attention with a hand-derived backward pass.", "attention"],
+    ["03", "Layer normalization", "LayerNorm, residual connections and GPT-2's pre-LN block.", "nn · block"],
+    ["04", "Feed-forward network", "GELU and the 4× FFN, completing a block. The parameter count equals GPT-2 small.", "ffn"],
+    ["05", "The output head", "N blocks, final LayerNorm, tied head, softmax, cross-entropy and the full backward pass.", "golem"],
+    ["06", "A faster engine", "A NEON assembly kernel at 112 GFLOP/s per core, bit-identical results, and a CUDA backend.", "tensor · gpu"],
+    ["07", "Conversation", "Supervised fine-tuning and DPO preference training, following InstructGPT.", "chat · dpo"],
+    ["08", "Looking ahead", "Full attention compared with Kimi K3's linear, delta-rule attention.", "analysis"],
+    ["09", "Golem-One", "Typed, calibrated decisions from the same transformer: segment mask and restricted readout.", "decide", true],
+    ["10", "Scaling up", "fp16 tensor cores, LoRA and two-GPU data parallelism to train GPT-2 XL on free hardware.", "gpu", true],
+    ["11", "Golem-One XL", "The model card: 1.56B parameters, 28 datasets, Snake, and learning from its own decisions.", "model card", true]
+  ];
+  $("#timeline").innerHTML = steps.map(([n, t, d, p, hl]) => `
+    <div class="card step reveal${hl ? " hl" : ""}"><div class="num"><span>REPORT ${n}</span><em>●</em></div><h3>${t}</h3><p>${d}</p><span class="chip">${p}</span></div>`).join("");
+  $$("#timeline .reveal").forEach(el => io.observe(el));
+
+  const mask = $("#mask");
+  const seg = i => i < 5 ? "st" : i < 8 ? "q1" : i < 10 ? "q2" : "q3";
+  const start = i => i < 5 ? 0 : i < 8 ? 5 : i < 10 ? 8 : 10;
+  const allowed = (r, c) => c <= r && (c < 5 || c >= start(r));
+  const cells = [];
+  for (let r = 0; r < 14; r++) for (let c = 0; c < 14; c++) {
+    const d = document.createElement("div");
+    if (allowed(r, c)) d.className = r < 5 ? "st" : (c < 5 ? "st" : seg(r));
+    d.dataset.r = r; cells.push(d); mask.appendChild(d);
+  }
+  const names = ["state", "question 1", "question 2", "question 3"];
+  function hlRow(r) {
+    cells.forEach(d => { const rr = +d.dataset.r; d.classList.toggle("dimmed", r !== null && rr !== r); d.classList.toggle("row-hl", false); });
+    const who = r === null ? null : r < 5 ? 0 : r < 8 ? 1 : r < 10 ? 2 : 3;
+    $("#mask-read").innerHTML = r === null ? "row = token that looks<br>column = token looked at"
+      : who === 0 ? `a state token sees<br>only earlier state tokens`
+      : `a ${names[who]} token sees<br>the whole state + its own<br>segment, never other questions`;
+  }
+  mask.addEventListener("pointerover", e => { if (e.target.dataset.r) hlRow(+e.target.dataset.r); });
+  mask.addEventListener("pointerleave", () => hlRow(null));
+  mask.addEventListener("click", e => { if (e.target.dataset.r) hlRow(+e.target.dataset.r); });
+
+  const mem = [
+    ["full fine-tune, fp32, 1 seq", 27.7, "var(--n-red)"],
+    ["fp16 + LoRA, frozen fp16 base, 4 seqs", 14.6, "var(--n-green)"],
+    ["  of which: frozen base weights", 3.3, "var(--go)"]
+  ];
+  $("#mem").innerHTML = mem.map(([l, gb, col]) => `
+    <div class="mem-row"><div class="lab"><span>${l}</span><span>${gb} GB</span></div>
+    <div class="mem-track"><div class="mem-fill" style="background:${col}" data-w="${Math.min(100, gb / 30 * 100)}"></div><div class="mem-limit" style="left:${15 / 30 * 100}%"></div></div></div>`).join("") +
+    `<p class="note" style="margin-top:18px">Full fine-tuning doesn't fit even one sequence. With LoRA and a half-precision frozen base, XL fits four per GPU.</p>
+    <h3 style="margin-top:30px">Throughput on Kaggle T4s</h3>
+    <table class="tp"><thead><tr><th>Model</th><th>Setup</th><th style="text-align:right">tokens/s</th></tr></thead><tbody>
+    <tr><td>medium</td><td>fp32 · 1 GPU</td><td style="text-align:right">1,265</td></tr>
+    <tr><td>medium</td><td>+ length bucketing</td><td style="text-align:right">1,660</td></tr>
+    <tr><td>medium</td><td>fp16 · 1 GPU</td><td style="text-align:right;color:var(--go-2)">4,340</td></tr>
+    <tr><td>large</td><td>fp16 + LoRA · 2 GPUs</td><td style="text-align:right">3,929</td></tr>
+    <tr><td>XL</td><td>fp16 + LoRA · 1 GPU</td><td style="text-align:right">1,429</td></tr>
+    <tr><td>XL</td><td>fp16 + LoRA · 2 GPUs</td><td style="text-align:right;color:var(--n-yellow)">2,180</td></tr>
+    </tbody></table>
+    <p class="note">Benchmarks from Report 10. Every GPU change is tested against the Go CPU engine or a one-GPU run.</p>`;
+
+  const skills = [
+    ["entailment", 90000, "MultiNLI · SNLI + e-SNLI explanations"],
+    ["commonsense", 79854, "HellaSwag · PIQA · WinoGrande · CommonsenseQA + ECQA"],
+    ["reading", 62227, "BoolQ · PAWS · CosmosQA"],
+    ["games", 60000, "Snake positions from 300 expert games"],
+    ["routing", 55000, "Banking77 · CLINC150 · HWU64 · Bitext"],
+    ["many tasks", 50114, "Super-NaturalInstructions"],
+    ["logic", 40868, "ProofWriter · FOLIO"],
+    ["math", 40000, "AQuA-RAT · MathQA, with worked rationales"],
+    ["moderation", 33064, "Civil Comments · OpenAssistant ratings"],
+    ["reasoning", 30000, "BIG-bench"],
+    ["judgment", 25000, "ETHICS"],
+    ["classification", 24982, "DBpedia · SMS Spam"],
+    ["knowledge", 16461, "ARC · OpenBookQA · QASC"],
+    ["multi-step", 2079, "StrategyQA"]
+  ];
+  const cols = ["var(--go)", "var(--n-green)", "var(--n-cyan)", "var(--n-yellow)", "var(--n-pink)", "var(--n-orange)", "var(--n-blue)"];
+  $("#skills").innerHTML = skills.map(([n, v, s], i) => `
+    <div class="skill"><span class="name">${n}</span><div class="track"><div class="fill" style="background:${cols[i % cols.length]}" data-w="${v / 90000 * 100}"></div></div><span class="v">${v.toLocaleString("en-US")}</span><span class="src">${s}</span></div>`).join("");
+  const trainEl = $("#training .two-col"); trainEl.dataset.onview = "train";
+  actions.train = () => { $$("#mem .mem-fill, #skills .fill").forEach(f => f.style.width = f.dataset.w + "%"); };
+  io.observe(trainEl);
+
+  const dec = [1.5986,1.3006,1.2713,1.2183,1.1882,1.1737,0.9851,0.9711,0.9031,0.8802,0.9024,0.8747,0.8863,0.8107,0.7970,0.8160,0.8363,0.8137,0.7912,0.8065,0.7644,0.7520,0.7571,0.7957,0.7741,0.7392,0.7483,0.7383,0.7518,0.7405,0.7188,0.7268,0.7448,0.7297,0.7337,0.6888,0.6853,0.7120];
+  const conv = [1.9395,1.9679,2.0075,1.9918,2.0280,2.0036,2.0513,2.0537,2.0408,2.0624,2.0735,2.0481,2.0594,2.1068,2.0689,2.0837,2.0884,2.0805,2.0911,2.1026,2.0980,2.1343,2.1399,2.1296,2.1605,2.1464,2.1272,2.1486,2.1305,2.1492,2.1471,2.1553,2.1555,2.1524,2.1539,2.1503,2.1443,2.1383];
+  (function chart() {
+    const W = 900, H = 320, L = 46, R = 16, T = 12, B = 34, xmax = 81, ymin = .5, ymax = 2.3;
+    const x = i => L + i / xmax * (W - L - R), y = v => T + (ymax - v) / (ymax - ymin) * (H - T - B);
+    let s = "";
+    for (let v = .5; v <= 2.31; v += .25) s += `<line class="gridl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(2)}</text>`;
+    for (let k = 0; k <= 80; k += 10) s += `<text x="${x(k)}" y="${H - 12}" text-anchor="middle">${k}k</text>`;
+    s += `<rect x="${x(37.2)}" y="${T}" width="${x(81.1) - x(37.2)}" height="${H - T - B}" fill="rgba(255,255,255,.025)"/>`;
+    s += `<text x="${(x(37.2) + x(81.1)) / 2}" y="${y(1.35)}" text-anchor="middle" style="fill:var(--dim)">still to train (to step 81,122)</text>`;
+    const path = a => a.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    const area = `${path(dec)}L${x(dec.length - 1)},${y(ymin)}L${x(0)},${y(ymin)}Z`;
+    s += `<defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#00ADD8" stop-opacity=".28"/><stop offset="1" stop-color="#00ADD8" stop-opacity="0"/></linearGradient></defs>`;
+    s += `<path d="${area}" fill="url(#ga)"/>`;
+    s += `<path d="${path(conv)}" fill="none" stroke="#FFA24C" stroke-width="2.2" stroke-linejoin="round"/>`;
+    s += `<path id="dec-line" d="${path(dec)}" fill="none" stroke="#00ADD8" stroke-width="2.8" stroke-linejoin="round"/>`;
+    s += `<circle cx="${x(36)}" cy="${y(.6853)}" r="5" fill="#5CFF8A"/><text x="${x(36)}" y="${y(.6853) + 22}" text-anchor="middle" style="fill:#5CFF8A">best 0.685</text>`;
+    s += `<text x="${x(0) + 8}" y="${y(1.5986) - 8}" style="fill:#c7cedb">GPT-2 XL 1.599</text>`;
+    s += `<line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>`;
+    $("#loss").innerHTML = s;
+  })();
+
+  const choices = [
+    ["Foundation", "Build Golem ourselves in Go; start from GPT-2's weights", "A framework, or swapping in another open model; pre-training from scratch", "The point is to build and understand every part. Pre-training from scratch is out of reach for one person."],
+    ["Block layout", "Pre-LN, as in GPT-2", "Post-LN, as in the original diagram and GPT-1", "Deep stacks train more stably, and GPT-2's weights load unchanged."],
+    ["Decisions", "Segment mask + restricted readout on the unchanged transformer", "A new non-autoregressive network (Jev); a separate classifier head", "Keeps everything pre-training learned, keeps text generation, and gives validity without new parameters."],
+    ["Labels", "One GPT-2 token per option (A–Z, 1–255)", "Scoring multi-token option names", "One position per question, and no bias toward short names."],
+    ["Loss", "Softmax over the options only", "The full 50,257-way softmax", "Training optimizes exactly what is served."],
+    ["Options", "Shuffled, with sampled distractors", "Fixed order", "Forces the model to read the options, and removes first-option bias."],
+    ["Size", "XL, 1.56B", "Medium or large", "At this scale, pre-trained size is the strongest lever."],
+    ["Training", "LoRA rank 16 + fp16 on two free T4s", "Full fine-tuning", "Full fine-tuning of XL needs about 25 GB, and a T4 has 15."],
+    ["Data", "28 open, human-labeled datasets", "A single task; labels generated by another model", "Breadth for unseen questions, without inheriting another model's errors."],
+    ["Explanations", "Learned alongside the answers (Distilling Step-by-Step)", "Chain-of-thought at inference", "Better answers at zero inference cost."],
+    ["Learning", "Golem updates its own weights through its API", "A separate small RL network", "One model that both decides and learns."]
+  ];
+  $("#choices-list").innerHTML = choices.map(([q, a, x, why]) => `
+    <details class="choice"><summary><span class="q">${q}</span><span class="a">${a}</span><span class="chev">+</span></summary>
+    <div class="body"><span class="x">Set aside</span><span class="muted">${x}</span><span class="x y">Why</span><span>${why}</span></div></details>`).join("");
+
+  const A = id => `https://arxiv.org/abs/${id}`;
+  const lineage = [
+    ["Byte-level BPE tokenizer", "tokenizer", [["Sennrich et al., 2016", A("1508.07909")], ["GPT-2, 2019", "https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf"]], "1"],
+    ["Embeddings & positions", "embedding", [["GPT-1, 2018", "https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf"], ["Vaswani et al., 2017", A("1706.03762")]], "1"],
+    ["Causal multi-head attention", "attention", [["Attention Is All You Need", A("1706.03762")], ["FlashAttention (blocked form)", A("2205.14135")]], "2"],
+    ["LayerNorm & pre-LN block", "nn · block", [["Ba et al., 2016", A("1607.06450")], ["GPT-2", "https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf"]], "3"],
+    ["Feed-forward with GELU", "ffn", [["GPT-1", "https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf"], ["Hendrycks & Gimpel, 2016", A("1606.08415")]], "4"],
+    ["Tied head, softmax, loss", "golem", [["Press & Wolf, 2017", A("1608.05859")]], "5"],
+    ["AdamW optimizer", "optim", [["Loshchilov & Hutter, 2019", A("1711.05101")]], "7"],
+    ["GPU engine", "gpu", [["llm.c (Karpathy)", "https://github.com/karpathy/llm.c"], ["Mixed Precision Training", A("1710.03740")]], "6, 10"],
+    ["Fine-tuning & preferences", "chat · dpo", [["InstructGPT", A("2203.02155")], ["DPO", A("2305.18290")], ["OpenAssistant", A("2304.07327")]], "7"],
+    ["Typed decisions (System One)", "decide", [["TypeSafe AI — Jev", "https://typesafe.ai/blog/introducing-system-one-models-and-jev"], ["Kahneman, Thinking, Fast and Slow", null]], "9"],
+    ["Label readout", "decide", [["MMLU-style answer scoring", A("2009.03300")]], "9"],
+    ["LoRA adapters", "gpu", [["Hu et al., 2022", A("2106.09685")]], "10"],
+    ["Multi-task data & explanations", "decide", [["Super-NaturalInstructions", A("2204.07705")], ["Distilling Step-by-Step", A("2305.02301")], ["e-SNLI", A("1812.01193")]], "11"],
+    ["Calibration", "decide", [["Guo et al., 2017", A("1706.04599")], ["Brier, 1950", null], ["Gneiting & Raftery, 2007", null]], "9"],
+    ["Learning from outcomes", "decide.Learner", [["REINFORCE (Williams, 1992)", "https://doi.org/10.1007/BF00992696"]], "11"]
+  ];
+  $("#lineage-body").innerHTML = lineage.map(([c, pkg, refs, r]) => `
+    <tr><td>${c}<br><code>${pkg}</code></td><td>${refs.map(([t, u]) => u ? `<a href="${u}" rel="noopener">${t}</a>` : t).join(" · ")}</td><td>${r}</td></tr>`).join("");
+
+  const Wd = 10, Hd = 10, D = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  const ORDER = ["up", "down", "left", "right"];
+  let snake, apple, score, stepsN, lastPick;
+  const key = p => p[0] + "," + p[1];
+  function reset() {
+    snake = [[5, 5], [4, 5], [3, 5]]; score = 0; stepsN = 0; placeApple();
+  }
+  function placeApple() {
+    const occ = new Set(snake.map(key)); const free = [];
+    for (let y = 0; y < Hd; y++) for (let x = 0; x < Wd; x++) if (!occ.has(x + "," + y)) free.push([x, y]);
+    apple = free.length ? free[Math.floor(Math.random() * free.length)] : null;
+  }
+  const inside = p => p[0] >= 0 && p[1] >= 0 && p[0] < Wd && p[1] < Hd;
+  function advance(body, m) {
+    const h = body[0], n = [h[0] + D[m][0], h[1] + D[m][1]];
+    const eats = apple && n[0] === apple[0] && n[1] === apple[1];
+    const rest = eats ? body : body.slice(0, -1);
+    if (!inside(n) || rest.some(p => p[0] === n[0] && p[1] === n[1])) return null;
+    return [n, ...rest];
+  }
+  function bfs(body, target, allowTail) {
+    const blocked = new Set((allowTail ? body.slice(0, -1) : body).map(key));
+    blocked.delete(key(body[0]));
+    const q = [[body[0], []]], seen = new Set([key(body[0])]);
+    while (q.length) {
+      const [p, path] = q.shift();
+      if (p[0] === target[0] && p[1] === target[1]) return path;
+      for (const m of ORDER) {
+        const n = [p[0] + D[m][0], p[1] + D[m][1]], k = key(n);
+        if (!inside(n) || seen.has(k) || (blocked.has(k) && !(n[0] === target[0] && n[1] === target[1]))) continue;
+        seen.add(k); q.push([n, [...path, m]]);
+      }
+    }
+    return null;
+  }
+  const tailOk = body => body.length < 2 || bfs(body, body[body.length - 1], true) !== null;
+  function space(body) {
+    const blocked = new Set(body.map(key)); const q = [body[0]], seen = new Set([key(body[0])]); let n = 0;
+    while (q.length) { const p = q.shift(); for (const m of ORDER) { const c = [p[0] + D[m][0], p[1] + D[m][1]], k = key(c); if (inside(c) && !blocked.has(k) && !seen.has(k)) { seen.add(k); q.push(c); n++; } } }
+    return n;
+  }
+  function expert() {
+    if (apple) {
+      const path = bfs(snake, apple, false);
+      if (path) {
+        let b = snake, ok = true;
+        for (const m of path) { b = advance(b, m); if (!b) { ok = false; break; } }
+        if (ok && tailOk(b)) return path[0];
+      }
+    }
+    let best = null, bd = -1;
+    for (const m of ORDER) { const b = advance(snake, m); if (!b || !tailOk(b)) continue; const d = (bfs(b, b[b.length - 1], true) || []).length; if (d > bd) { bd = d; best = m; } }
+    if (best) return best;
+    let bs = -1; best = "up";
+    for (const m of ORDER) { const b = advance(snake, m); if (!b) continue; const s = space(b); if (s > bs) { bs = s; best = m; } }
+    return best;
+  }
+  function drawBoard() {
+    const cells = Array.from({ length: Hd }, () => Array(Wd).fill("."));
+    snake.forEach((p, i) => cells[p[1]][p[0]] = i ? "S" : "H");
+    if (apple) cells[apple[1]][apple[0]] = "A";
+    const wall = Array(Wd + 2).fill('<span class="W">#</span>').join(" ");
+    let s = wall;
+    for (let y = 0; y < Hd; y++) s += '\n<span class="W">#</span> ' + cells[y].map(c => c === "." ? "." : `<span class="${c}">${c}</span>`).join(" ") + ' <span class="W">#</span>';
+    $("#board").innerHTML = s + "\n" + wall;
+    $("#sn-score").textContent = score; $("#sn-steps").textContent = stepsN;
+  }
+  $("#moves").innerHTML = ORDER.map((m, i) => `<div class="move" data-m="${m}"><b>${"ABCD"[i]}</b>${m}</div>`).join("");
+  function tick() {
+    const m = expert(); lastPick = m;
+    $$("#moves .move").forEach(el => el.classList.toggle("pick", el.dataset.m === m));
+    const nb = advance(snake, m);
+    if (!nb || stepsN > 600) { reset(); drawBoard(); return; }
+    const ate = apple && nb[0][0] === apple[0] && nb[0][1] === apple[1];
+    snake = nb; stepsN++;
+    if (ate) { score++; placeApple(); if (!apple) { reset(); } }
+    drawBoard();
+  }
+  reset(); drawBoard();
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let snakeTimer = null;
+  const snakeObs = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting && !snakeTimer) snakeTimer = setInterval(tick, reduce ? 900 : 170);
+    if (!e.isIntersecting && snakeTimer) { clearInterval(snakeTimer); snakeTimer = null; }
+  }));
+  snakeObs.observe($("#board"));
+})();
+</script>
+</body>
+</html>
