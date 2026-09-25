@@ -161,10 +161,45 @@ td:first-child{color:var(--muted);white-space:nowrap}
 /* architecture */
 .arch{display:grid;grid-template-columns:minmax(300px,440px) 1fr;gap:40px;align-items:start}
 @media (max-width:900px){.arch{grid-template-columns:1fr}}
-.diagram{background:#000;border:1px solid var(--line);border-radius:22px;padding:18px 10px;position:relative}
+.diagram{background:radial-gradient(420px 320px at 50% 0%,rgba(0,173,216,.10),transparent 70%),linear-gradient(180deg,#0b0e16,#07090e);border:1px solid var(--line-2);border-radius:22px;padding:18px 10px 14px;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
 .diagram svg{width:100%;height:auto;display:block}
 .node{cursor:pointer}
-.node rect{fill:#000;stroke-width:3;transition:all .2s}
+.node rect{fill:#0a0d14;stroke-width:3;transition:fill .25s,filter .25s}
+.node text{transition:opacity .25s}
+svg.one .node.changed rect{stroke:var(--n-orange);fill:rgba(255,162,76,.07)}
+svg.one .node.tuned rect{stroke:var(--n-green);stroke-dasharray:7 4}
+svg.one .node.frozen{opacity:.5}
+.badge{pointer-events:none;opacity:0;transition:opacity .3s}
+svg.one .badge{opacity:1}
+.badge circle{fill:var(--n-orange)}
+.badge text{fill:#1a0d00;font:700 12px var(--mono)}
+.arch-legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font:12px var(--mono);color:var(--muted);margin-top:8px;min-height:18px;transition:opacity .3s}
+.arch-legend i{display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:2px solid}
+.changes{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:40px}
+@media (max-width:1100px){.changes{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.changes{grid-template-columns:1fr}}
+.chg{padding:20px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:transform .2s,border-color .2s,background .2s}
+.chg:hover,.chg.on{transform:translateY(-3px);border-color:rgba(255,162,76,.55);background:linear-gradient(180deg,rgba(255,162,76,.09),rgba(255,255,255,.01))}
+.chg .no{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--n-orange);color:#1a0d00;font:700 13px var(--mono);margin-bottom:12px}
+.chg h3{font-size:17px;margin-bottom:10px}
+.chg .ba{font-size:13.5px;line-height:1.5}
+.chg .ba span{display:block;color:var(--dim);text-decoration:line-through;text-decoration-color:rgba(255,84,112,.6)}
+.chg .ba b{display:block;color:#ffd9b3;font-weight:500;margin-top:4px}
+.chg .kind{display:inline-block;margin-top:12px;font:500 11px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.changes-head{display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap;margin-top:64px}
+.changes-head h3{font-size:28px;margin:6px 0 0}
+.pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin:0 0 30px;counter-reset:p}
+@media (max-width:900px){.pipe{grid-template-columns:1fr}}
+.pstep{position:relative;padding:20px 22px 20px 20px;border:1px solid var(--line);background:var(--panel);margin-right:18px;border-radius:16px}
+.pstep::after{content:"→";position:absolute;right:-17px;top:50%;transform:translateY(-50%);color:var(--go-2);font:700 18px var(--mono)}
+.pstep:last-child::after{display:none}
+.pstep:last-child{margin-right:0}
+@media (max-width:900px){.pstep{margin:0 0 18px}.pstep::after{content:"↓";right:auto;left:50%;top:auto;bottom:-22px;transform:translateX(-50%)}}
+.pstep small{font:600 11px var(--mono);letter-spacing:1px;text-transform:uppercase}
+.pstep b{display:block;font:600 17px var(--display);margin:6px 0 6px}
+.pstep p{font-size:13.5px;color:var(--muted);margin:0}
+#progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:60;background:linear-gradient(90deg,var(--go),var(--n-green));box-shadow:0 0 12px var(--go)}
+.nav ul a.cur{color:var(--text);background:var(--panel-2)}
 .node text{fill:#fff;font:500 15px var(--body);pointer-events:none}
 .node text.small{font-size:11.5px;fill:#b8bfcc}
 .node:hover rect,.node.active rect{fill:rgba(255,255,255,.06);filter:drop-shadow(0 0 10px currentColor)}
@@ -173,7 +208,7 @@ td:first-child{color:var(--muted);white-space:nowrap}
 .wire{stroke:var(--n-green);stroke-width:2.4;fill:none}
 .wire-head{fill:var(--n-green)}
 .mode-switch{display:flex;width:max-content;margin:0 auto 6px;gap:4px;background:rgba(255,255,255,.06);border:1px solid var(--line-2);border-radius:10px;padding:3px}
-.mode-switch button{font:600 11.5px var(--mono);color:var(--muted);background:none;border:0;padding:6px 9px;border-radius:7px;cursor:pointer}
+.mode-switch button{font:600 12px var(--mono);color:var(--muted);background:none;border:0;padding:7px 12px;border-radius:7px;cursor:pointer}
 .mode-switch button.on{background:var(--go);color:#001218}
 .detail{padding:30px;position:sticky;top:90px;min-height:420px}
 @media (max-width:900px){.detail{position:static;min-height:0}}
@@ -327,6 +362,7 @@ footer svg{height:16px;width:auto;vertical-align:-3px}
 </head>
 <body>
 
+<div id="progress"></div>
 <header class="nav">
   <div class="wrap">
     <a class="brand" href="#top" aria-label="Golem home">
@@ -453,15 +489,15 @@ footer svg{height:16px;width:auto;vertical-align:-3px}
 <!-- ARCHITECTURE -->
 <section id="architecture">
   <div class="wrap">
-    <div class="kicker">Architecture · click any block</div>
-    <h2>Every box, hand-written in Go.</h2>
-    <p class="sub">The project started from one diagram of a decoder-only transformer, with one rule: build each box by hand, in order, following the paper it comes from, and prove it correct before moving on. Click a block to see its Go package, the research it follows, and how it was checked.</p>
+    <div class="kicker">Architecture · GPT-2 XL → Golem-One XL</div>
+    <h2>GPT-2's architecture, rebuilt in Go and changed in five places.</h2>
+    <p class="sub">The project started from one diagram of a decoder-only transformer, with one rule: build each box by hand, in order, following the paper it comes from, and prove it correct before moving on. Click a block to see its Go package, the research it follows, and how it was checked. Then flip the switch to <b style="color:var(--n-orange)">Golem-One XL</b> to see what we changed.</p>
 
     <div class="arch">
       <div class="diagram">
-        <div class="mode-switch" role="group" aria-label="Output mode">
-          <button class="on" data-mode="gen">next token</button>
-          <button data-mode="one">Golem-One</button>
+        <div class="mode-switch" role="group" aria-label="Which model">
+          <button class="on" data-mode="gen">GPT-2 XL</button>
+          <button data-mode="one">Golem-One XL</button>
         </div>
         <svg viewBox="0 0 420 890" role="img" aria-label="Golem transformer diagram">
 <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="wire-head"/></marker></defs>
@@ -497,7 +533,9 @@ footer svg{height:16px;width:auto;vertical-align:-3px}
 <path class="wire" d="M210 765 V740" marker-end="url(#ah)"/>
 <g class="node" tabindex="0" data-id="tokenizer" style="color:var(--go)"><rect x="115" y="840" width="190" height="36" rx="9" stroke="var(--go)"/><text x="210.0" y="863.0" text-anchor="middle">BPE tokenizer · text</text></g>
 <path class="wire" d="M210 840 V814" marker-end="url(#ah)"/>
+<g id="badges"></g>
 </svg>
+        <div class="arch-legend" id="arch-legend"><span>token by token · 50,257-way softmax · sampled</span></div>
       </div>
 
       <div class="card detail" id="detail" aria-live="polite">
@@ -513,6 +551,13 @@ footer svg{height:16px;width:auto;vertical-align:-3px}
         <p class="hint">↳ Tab through the blocks with the keyboard, or click one in the diagram.</p>
       </div>
     </div>
+
+
+    <div class="changes-head">
+      <div><div class="kicker" style="color:var(--n-orange)">What we changed</div><h3>Five changes, then training on decisions.</h3></div>
+      <p class="muted" style="max-width:520px;margin:0;font-size:15px">Changes 1, 2 and 4 are about how the network is <em>read</em>. Changes 3 and 5 are about how it is <em>trained</em>. After training the adapters are merged, so Golem-One XL has exactly GPT-2 XL's 1,557,611,200 parameters.</p>
+    </div>
+    <div class="changes" id="changes"></div>
 
     <div class="prenote"><b>Why LayerNorm comes <em>before</em> each sub-layer.</b> The original diagram put LayerNorm <em>after</em> attention and after the feed-forward network. That is the post-LN layout of the 2017 transformer and GPT-1. Golem moved it before each sub-layer (pre-LN, as in GPT-2) for two reasons: deep stacks train more stably, and it is the only way OpenAI's released GPT-2 weights load unchanged. Golem-One depends on those weights.</div>
   </div>
@@ -593,6 +638,13 @@ Options:
     <h2>A 1.56B model on two free GPUs.</h2>
     <p class="sub">At this scale, a fine-tuned model's quality depends mostly on two things: the size of the pre-trained model and the amount of good data. So we chose GPT-2's largest shape. Fully fine-tuning it needs about 25 GB for weights and optimizer state, but a free Kaggle T4 has 15 GB. Four additions to Golem's own CUDA engine close that gap.</p>
 
+    <div class="pipe">
+      <div class="pstep"><small style="color:var(--muted)">Start</small><b>GPT-2 XL weights</b><p>OpenAI's released safetensors file: 1.56B parameters.</p></div>
+      <div class="pstep"><small style="color:var(--go-2)">Load</small><b>Golem engine, in Go</b><p>Loaded into our own tokenizer, blocks and CUDA engine.</p></div>
+      <div class="pstep" style="border-color:rgba(255,162,76,.45)"><small style="color:var(--n-orange)">Train on decisions</small><b>LoRA fine-tuning</b><p>549k decisions, 40k explanations and 60k Snake moves, with the options-only loss on 2×T4.</p></div>
+      <div class="pstep"><small style="color:var(--n-green)">Merge</small><b>W + α/r · AB</b><p>The adapters are folded into an ordinary Golem checkpoint.</p></div>
+      <div class="pstep"><small style="color:var(--n-pink)">Serve</small><b>Golem-One XL</b><p>Served at <code>/v1/decide</code>, and keeps learning from its own games.</p></div>
+    </div>
     <div class="techs">
       <div class="card tech"><div class="ic" style="background:rgba(0,173,216,.12);color:var(--go-2)">fp16</div><h3>Mixed precision</h3><p>Matrix products run on tensor cores in fp16. Master weights, gradients and optimizer state stay fp32, and dynamic loss scaling prevents underflow.</p><div class="big" style="color:var(--go-2)">2.6–2.9× faster</div></div>
       <div class="card tech"><div class="ic" style="background:rgba(227,107,255,.12);color:var(--n-pink)">r16</div><h3>LoRA</h3><p>Every linear weight is frozen, kept in fp16 only, and adapted by a rank-16 product. Checkpoints merge back into ordinary Golem weights.</p><div class="big" style="color:var(--n-pink)">1.33% trained</div></div>
@@ -677,7 +729,7 @@ Options:
     <div class="card cardcta">
       <div>
         <div class="kicker">Model card</div>
-        <h2 style="margin-bottom:14px">Golem-One XL: the full story, in 13 pages.</h2>
+        <h2 style="margin-bottom:14px">Golem-One XL: the full story, in 15 pages.</h2>
         <ul>
           <li>Every component we built in Go, the paper it follows, and how it was checked</li>
           <li>How a token-by-token assistant became a System One decision model</li>
@@ -847,9 +899,57 @@ Options:
       check: "Scoring all questions at once through the segment mask reproduces separate forward passes to 10⁻⁴."
     }
   };
+  Object.assign(comps, {
+    c1: { pkg: "internal/decide", title: "① Input: a state and typed questions",
+      what: "GPT-2 continues whatever text it gets. Golem-One gets a state plus typed questions (YesNo, Choice or Score). Each option has a label that is a single GPT-2 token, and every question ends at Answer:. Training and inference use exactly the same tokens.",
+      formula: "State: … ⏎ Question: … ⏎ Options: A) … B) … ⏎ Answer:",
+      paper: "The interface of TypeSafe AI's Jev (a System One model)",
+      xl: "2 to 255 options: labels A–Z, then 1–255",
+      check: "At run time, every label is checked to be one GPT-2 token and all labels to be distinct. Tests cover up to 255 options." },
+    c2: { pkg: "internal/golem · internal/decide", title: "② Attention with a segment mask",
+      what: "GPT-2 uses one causal mask over one sequence. Golem-One reads the state once into the attention cache, then runs every question in a single pass as its own segment. Each segment sees the whole state and itself, never another question, and its positions are renumbered as if it alone followed the state.",
+      formula: "A(t) = {0 … S−1} ∪ {S+oₜ … S+t}",
+      paper: "Ours; builds on the KV cache used for generation (Report 6)",
+      xl: "The state is read once; all questions take one more pass",
+      check: "Matches separate forward passes to 10⁻⁶ per attention layer and 10⁻⁴ on the final probabilities, on the real GPT-2 weights." },
+    c3: { pkg: "internal/gpu", title: "③ LoRA adapters on every linear layer",
+      what: "Updating all 1.56B weights would need about 25 GB, and a free T4 has 15 GB. So the weights stay frozen in fp16, and each of the four linear layers per block (QKV, attention output, and the two FFN layers) learns a rank-16 correction. The LayerNorm gains and biases are fine-tuned too. After training, the correction is merged into W.",
+      formula: "y = x·(W + α/r · A·B) + b  ·  r = 16, α = 32",
+      paper: "Hu et al., 2022 (LoRA); mixed precision per Micikevicius et al., 2018",
+      xl: "20.7M trained parameters (1.33%); the frozen base takes 3.1 GB",
+      check: "The LoRA forward pass equals the CPU forward pass of the merged weights, and the adapter gradients match those derived from the CPU engine's full-weight gradient." },
+    c4: Object.assign({}, comps.readout, { title: "④ Restricted readout over K labels" }),
+    c5: { pkg: "internal/gpu · internal/nn", title: "⑤ Options-only loss",
+      what: "GPT-2 was trained with cross-entropy over all 50,257 tokens at every position. On decision rows Golem-One XL takes the softmax over the K option labels only, at the answer position, which is exactly the quantity it serves. The explanation rows keep the full-vocabulary loss.",
+      formula: "ℓ = −log( e^z_y / Σ_{j ∈ options} e^z_j )",
+      paper: "The log score, a proper scoring rule (Gneiting & Raftery, 2007)",
+      xl: "Decision validation loss 1.599 → 0.685 by step 36k",
+      check: "The fused GPU cross-entropy matches the CPU engine's loss and gradients, including rows with answer options." }
+  });
+  const oneText = {
+    tokenizer: ["State + typed questions"],
+    attention: ["Attention · segment mask", "+ LoRA (rank 16)"],
+    ffn: ["Feed Forward", "GELU · + LoRA (rank 16)"],
+    linear: ["Only K label rows of Wₑ"],
+    softmax: ["Softmax over K options"],
+    embedding: ["Embedding (frozen)"]
+  };
+  const badgeMap = { tokenizer: [1], attention: [2, 3], ffn: [3], linear: [4], softmax: [4, 5] };
+  const tuned = ["ln", "lnf"], frozen = ["embedding", "positions"];
+  const changeNodes = { c1: ["tokenizer"], c2: ["attention"], c3: ["attention", "ffn"], c4: ["linear", "softmax"], c5: ["softmax"] };
+  const archSvg = $(".diagram svg");
+  $$(".node", archSvg).forEach(n => { $$("text", n).forEach(t => t.dataset.orig = t.textContent); });
+  let bsvg = "";
+  $$(".node", archSvg).forEach(n => {
+    const nums = badgeMap[n.dataset.id]; if (!nums) return;
+    const r = $("rect", n), x = +r.getAttribute("x") + +r.getAttribute("width") + 16, y = +r.getAttribute("y") + +r.getAttribute("height") / 2;
+    nums.forEach((k, i) => bsvg += `<g class="badge"><circle cx="${x + i * 23}" cy="${y}" r="10"/><text x="${x + i * 23}" y="${y + 4}" text-anchor="middle">${k}</text></g>`);
+  });
+  $("#badges").innerHTML = bsvg;
+
   let mode = "gen";
-  function show(id) {
-    if (mode === "one" && id === "softmax") id = "readout";
+  function show(id, hl) {
+    if (mode === "one" && id === "softmax") id = "c4";
     const c = comps[id]; if (!c) return;
     $("#d-pkg").textContent = c.pkg;
     $("#d-title").textContent = c.title;
@@ -858,7 +958,25 @@ Options:
     $("#d-paper").textContent = c.paper;
     $("#d-xl").textContent = c.xl;
     $("#d-check").textContent = c.check;
-    $$(".node").forEach(n => n.classList.toggle("active", n.dataset.id === id || (id === "readout" && n.dataset.id === "softmax")));
+    const on = hl || [id === "c4" ? "softmax" : id];
+    $$(".node").forEach(n => n.classList.toggle("active", on.includes(n.dataset.id)));
+    $$(".chg").forEach(b => b.classList.toggle("on", b.dataset.c === id));
+  }
+  function setMode(m) {
+    mode = m;
+    $$(".mode-switch button").forEach(x => x.classList.toggle("on", x.dataset.mode === m));
+    archSvg.classList.toggle("one", m === "one");
+    $$(".node", archSvg).forEach(n => {
+      const id = n.dataset.id, alt = oneText[id], texts = $$("text", n);
+      texts.forEach((t, i) => t.textContent = m === "one" && alt ? (alt[i] ?? t.dataset.orig) : t.dataset.orig);
+      n.classList.toggle("changed", !!badgeMap[id]);
+      n.classList.toggle("tuned", tuned.includes(id));
+      n.classList.toggle("frozen", frozen.includes(id));
+    });
+    $("#out-label").textContent = m === "one" ? "Typed answers + probabilities" : "Output probabilities";
+    $("#arch-legend").innerHTML = m === "one"
+      ? `<span><i style="border-color:var(--n-orange)"></i>changed</span><span><i style="border-color:var(--n-green);border-style:dashed"></i>fine-tuned</span><span><i style="border-color:#555"></i>frozen GPT-2</span>`
+      : `<span>token by token · 50,257-way softmax · sampled</span>`;
   }
   $$(".node").forEach(n => {
     if (!n.querySelector("text")) { n.removeAttribute("tabindex"); return; }
@@ -867,13 +985,34 @@ Options:
     n.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(n.dataset.id); } });
   });
   $$(".mode-switch button").forEach(b => b.addEventListener("click", () => {
-    mode = b.dataset.mode;
-    $$(".mode-switch button").forEach(x => x.classList.toggle("on", x === b));
-    $("#sm-text").textContent = mode === "one" ? "Readout over K labels" : "Softmax";
-    $("#out-label").textContent = mode === "one" ? "Typed answers + probabilities" : "Output probabilities";
-    show(mode === "one" ? "readout" : "softmax");
+    setMode(b.dataset.mode);
+    show(b.dataset.mode === "one" ? "c2" : "attention", b.dataset.mode === "one" ? changeNodes.c2 : undefined);
+  }));
+  const chgData = [
+    ["c1", "Input format", "any text, continued", "a state + typed questions, one-token labels", "how it's read"],
+    ["c2", "Segment mask", "one causal sequence", "state read once, questions in parallel", "how it's read"],
+    ["c3", "LoRA adapters", "all 1.56B weights trainable", "frozen fp16 base + rank-16 adapters", "how it's trained"],
+    ["c4", "Restricted readout", "softmax over 50,257 tokens", "softmax over the K declared options", "how it's read"],
+    ["c5", "Options-only loss", "cross-entropy over the vocabulary", "cross-entropy over the options only", "how it's trained"]
+  ];
+  $("#changes").innerHTML = chgData.map(([c, t, a, b, k], i) => `
+    <button class="card chg" data-c="${c}"><span class="no">${i + 1}</span><h3>${t}</h3>
+    <div class="ba"><span>GPT-2: ${a}</span><b>Golem-One: ${b}</b></div><span class="kind">${k}</span></button>`).join("");
+  $$(".chg").forEach(b => b.addEventListener("click", () => {
+    setMode("one"); show(b.dataset.c, changeNodes[b.dataset.c]);
+    const d = $(".arch"), r = d.getBoundingClientRect();
+    if (r.top < 0 || r.top > innerHeight * .5) d.scrollIntoView({ behavior: "smooth", block: "start" });
   }));
   show("attention");
+
+  const prog = $("#progress");
+  const onScroll = () => { const h = document.documentElement; prog.style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight) * 100) + "%"; };
+  addEventListener("scroll", onScroll, { passive: true }); onScroll();
+  const navLinks = $$(".nav ul a");
+  const secObs = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) navLinks.forEach(a => a.classList.toggle("cur", a.getAttribute("href") === "#" + e.target.id));
+  }), { rootMargin: "-45% 0px -50% 0px" });
+  $$("section[id]").forEach(x => secObs.observe(x));
 
   const steps = [
     ["01", "The input layer", "Byte-level BPE tokenizer, token embeddings and positional encoding.", "tokenizer · embedding"],
