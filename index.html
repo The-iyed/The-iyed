@@ -3,1078 +3,270 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Golem-One XL — GPT-2 rebuilt in Go, taught to decide</title>
-<meta name="description" content="Golem is GPT-2's architecture rebuilt from scratch in Go, layer by layer, following the research papers. Golem-One XL changes it in five places and trains it to decide: typed questions in, a probability for every allowed answer out.">
-<meta property="og:title" content="Golem-One XL — GPT-2 rebuilt in Go, taught to decide">
-<meta property="og:description" content="Every layer hand-written in Go. Five changes turn a token-by-token model into a System One decision model.">
+<title>Iyed Sebai — AI Engineer</title>
+<meta name="description" content="Iyed Sebai: AI engineer building RAG and agentic systems in regulated environments. Led a governed LLM platform to production inside a Saudi ministry, and builds Golem, GPT-2 rebuilt from scratch in Go.">
+<meta property="og:title" content="Iyed Sebai — AI Engineer">
+<meta property="og:description" content="RAG & agentic systems in regulated environments. Building Golem: GPT-2 rebuilt from scratch in Go.">
 <meta name="theme-color" content="#faf8f4">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306070b'/%3E%3Crect x='7' y='6' width='18' height='20' rx='4' fill='none' stroke='%2300ADD8' stroke-width='2.5'/%3E%3Ccircle cx='13' cy='14' r='2' fill='%234ADE80'/%3E%3Ccircle cx='19' cy='14' r='2' fill='%234ADE80'/%3E%3Cpath d='M12 20h8' stroke='%2300ADD8' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#faf8f4;--surface:#fffdf9;--surface-2:#f2ede1;--surface-3:#e9e1d1;
-  --line:#e6ded0;--line-2:#d8cdb9;
-  --text:#211e19;--soft:#4a453c;--muted:#7c7568;--dim:#968c7b;
-  --go:#9a3b2b;--go-2:#b5502f;
-  --orange:#9c5a1f;--green:#5b6b4f;--red:#b23b3b;--pink:#8a5a72;--yellow:#96751b;--blue:#4f5f78;--cyan:#3f7672;
-  --r:14px;--maxw:1200px;
-  --display:"Fraunces",Georgia,serif;--body:"Inter",system-ui,-apple-system,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --bg:#faf8f4;--bg-2:#f2ede1;--paper:#fffdf9;
+  --ink:#211e19;--soft:#4a453c;--muted:#7c7568;--line:#e6ded0;--line-2:#d8cdb9;
+  --accent:#9a3b2b;--accent-soft:rgba(154,59,43,.08);--sage:#5b6b4f;
+  --maxw:700px;
+  --serif:"Fraunces",Georgia,"Times New Roman",serif;
+  --sans:"Inter",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 var(--body);overflow-x:hidden}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:
-  radial-gradient(1200px 700px at 80% -10%,rgba(154,59,43,.05),transparent 60%),
-  radial-gradient(800px 600px at -10% 30%,rgba(91,107,79,.035),transparent 60%)}
-main,header,footer{position:relative;z-index:1}
-a{color:var(--go-2);text-decoration:none}a:hover{text-decoration:underline}
-code,.mono{font-family:var(--mono)}
-code,pre,.formula,.out,.mono,.board{font-variant-ligatures:none;font-feature-settings:"liga" 0,"calt" 0}
-code{font-size:.9em;color:var(--go-2)}
-button{font:inherit;color:inherit}
-.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
-@media (max-width:640px){.wrap{padding:0 16px}}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.7 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(154,59,43,.32);transition:border-color .15s,opacity .15s}
+a:hover{border-color:var(--accent)}
+.mono{font-family:var(--mono)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+@media (max-width:560px){.wrap{padding:0 20px}}
+hr.rule{border:0;border-top:1px solid var(--line);margin:0}
 
 /* nav */
-#progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:70;background:linear-gradient(90deg,var(--go),var(--green))}
-.nav{position:sticky;top:0;z-index:60;background:rgba(250,248,244,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
-.nav .wrap{display:flex;align-items:center;gap:18px;height:62px}
-.brand{display:flex;align-items:center;gap:12px;color:var(--text);font:600 17px var(--display)}
-.brand:hover{text-decoration:none}
-.brand svg{height:20px;width:auto}
-.brand i{width:1px;height:20px;background:var(--line-2)}
-.chapters{display:flex;gap:2px;list-style:none;margin:0 0 0 auto;padding:0}
-.chapters a{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:14px;padding:7px 11px;border-radius:9px}
-.chapters a b{font:600 11px var(--mono);color:var(--dim)}
-.chapters a:hover{color:var(--text);background:var(--surface-2);text-decoration:none}
-.chapters a.cur{color:var(--text);background:var(--surface-2)}
-.chapters a.cur b{color:var(--go-2)}
-@media (max-width:1020px){.chapters{display:none}}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font:600 15px var(--display);padding:12px 20px;border-radius:12px;border:1px solid var(--line-2);color:var(--text);background:var(--surface-2);cursor:pointer;transition:transform .2s,border-color .2s,background .2s}
-.btn:hover{text-decoration:none;transform:translateY(-1px);border-color:rgba(33,30,25,.28)}
-.btn.primary{background:var(--go);border-color:transparent;color:#fdf8f0;box-shadow:0 10px 24px -14px rgba(154,59,43,.45)}
-.btn.sm{padding:8px 14px;font-size:13.5px;border-radius:10px}
-.nav .btn{margin-left:auto}
-@media (min-width:1021px){.nav .btn{margin-left:8px}}
+.nav{padding:26px 0}
+.nav .wrap{display:flex;align-items:baseline;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.brand{font:600 15px var(--serif);color:var(--ink);border:0}
+.brand:hover{border:0;opacity:.7}
+.links{display:flex;gap:20px;flex-wrap:wrap;font:500 13.5px var(--sans)}
+.links a{color:var(--soft);border-bottom:1px solid transparent}
+.links a:hover{color:var(--ink);border-color:var(--line-2)}
+.links a.cv{color:var(--accent)}
 
 /* hero */
-.hero{padding:84px 0 40px}
-.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:60px;align-items:center}
-@media (max-width:1000px){.hero-grid{grid-template-columns:1fr;gap:44px}.hero{padding-top:52px}}
-.pill{display:inline-flex;align-items:center;gap:10px;font:500 12.5px var(--mono);color:var(--go-2);padding:6px 12px;border:1px solid rgba(154,59,43,.3);border-radius:999px;background:rgba(154,59,43,.07)}
-.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
-@keyframes pulse{50%{opacity:.3}}
-h1{font:700 clamp(42px,6.6vw,82px)/.98 var(--display);letter-spacing:-2.4px;margin:22px 0 22px}
-h1 em{font-style:normal;background:linear-gradient(95deg,var(--go-2),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
-.lede{font-size:clamp(17px,1.6vw,19.5px);color:var(--soft);max-width:600px;margin:0 0 30px}
-.lede b{color:var(--text);font-weight:600}
-.cta{display:flex;flex-wrap:wrap;gap:12px}
-.madewith{display:flex;align-items:center;gap:12px;margin-top:30px;font-size:13.5px;color:var(--muted)}
-.madewith svg{height:17px;width:auto;flex:none}
+.hero{padding:44px 0 8px}
+.kicker{font:600 11px var(--mono);letter-spacing:2.5px;text-transform:uppercase;color:var(--accent)}
+h1{font:500 clamp(38px,7vw,58px)/1.08 var(--serif);letter-spacing:-.5px;margin:16px 0 22px;color:var(--ink)}
+.intro{font-size:18px;line-height:1.75;color:var(--soft);max-width:620px;margin:0 0 22px}
+.intro b{color:var(--ink);font-weight:600}
+.meta{font-size:14px;color:var(--muted);margin:0 0 6px}
+.hlinks{font-size:14.5px;margin:0 0 40px}
+.hlinks a{margin-right:2px}
+.hlinks span.sep{color:var(--line-2);margin:0 10px}
 
-.live{background:linear-gradient(180deg,var(--surface-2),var(--surface));border:1px solid var(--line-2);border-radius:22px;overflow:hidden;box-shadow:0 24px 60px -36px rgba(33,30,25,.16),0 0 0 1px rgba(154,59,43,.05)}
-.live-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line);font:500 12px var(--mono);color:var(--muted)}
-.live-head .ok{margin-left:auto;display:inline-flex;align-items:center;gap:7px;color:var(--green)}
-.live-head .ok::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green)}
-.live-body{padding:18px}
-.live-state{font:13.5px/1.6 var(--mono);color:var(--soft);background:rgba(33,30,25,.04);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-height:74px}
-.live-state small{display:block;color:var(--dim);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
-.caret{display:inline-block;width:7px;height:15px;background:var(--go);vertical-align:-2px;margin-left:1px;animation:blink 1s steps(1) infinite}
-@keyframes blink{50%{opacity:0}}
-.qs{display:grid;gap:14px;margin-top:16px}
-.q{opacity:.25;transition:opacity .4s}
-.q.on{opacity:1}
-.q-top{display:flex;justify-content:space-between;align-items:center;font:500 13px var(--mono);margin-bottom:7px}
-.q-top span:last-child{color:var(--dim);font-size:11.5px}
-.conf{display:inline-flex;align-items:center;gap:6px;color:var(--muted)!important}
-.row{display:grid;grid-template-columns:70px 1fr 38px;align-items:center;gap:10px;font:12px var(--mono);color:var(--muted);margin:4px 0}
-.row .tr{height:8px;border-radius:6px;background:rgba(33,30,25,.06);overflow:hidden}
-.row .fl{height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--go),var(--green));transition:width 1s cubic-bezier(.2,.8,.2,1)}
-.row.top{color:var(--text)}
-.row.bad .fl{background:linear-gradient(90deg,var(--orange),var(--red))}
-.live-foot{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--dim)}
-.live-foot button{background:none;border:1px solid var(--line-2);border-radius:8px;padding:5px 10px;color:var(--muted);cursor:pointer;font:500 12px var(--mono);flex:none}
-.live-foot button:hover{color:var(--text)}
-
-.stats{display:grid;grid-template-columns:repeat(5,1fr);margin-top:64px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.stat{padding:26px 22px;border-left:1px solid var(--line)}
+/* colophon stat strip */
+.strip{display:flex;flex-wrap:wrap;gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 0 64px}
+.stat{flex:1 1 20%;padding:20px 22px 20px 0;border-left:1px solid var(--line)}
 .stat:first-child{border-left:0;padding-left:0}
-.stat b{display:block;font:700 34px/1.1 var(--display);letter-spacing:-1px}
-.stat span{font-size:13px;color:var(--muted)}
-@media (max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.stat{border-left:0;border-top:1px solid var(--line);padding-left:0}.stat:nth-child(-n+2){border-top:0}.stat:last-child{grid-column:span 2}}
+.stat b{display:block;font:500 25px var(--serif);color:var(--ink);letter-spacing:-.3px}
+.stat span{font-size:12px;color:var(--muted);line-height:1.4;display:block;margin-top:2px}
+@media (max-width:640px){.strip{flex-direction:column}.stat{border-left:0;border-top:1px solid var(--line);padding:16px 0}.stat:first-child{border-top:0}}
 
-/* idea */
-.idea{padding:88px 0 40px}
-.idea-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:34px}
-@media (max-width:900px){.idea-grid{grid-template-columns:1fr}}
-.way{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:24px;position:relative;overflow:hidden}
-.way .tag{font:600 11.5px var(--mono);letter-spacing:1px;text-transform:uppercase}
-.way h3{margin:8px 0 14px}
-.toks{min-height:84px;font:13.5px/2 var(--mono)}
-.tok{display:inline-block;padding:0 6px;margin:2px;border-radius:6px;background:rgba(184,121,58,.12);border:1px solid rgba(184,121,58,.32);color:#6b4a1f;opacity:0;transform:translateY(4px);transition:all .25s}
-.tok.in{opacity:1;transform:none}
-.meter{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font:12.5px var(--mono);color:var(--muted)}
-.meter b{color:var(--text)}
-.verdict{margin-top:14px;padding:10px 14px;border-radius:10px;font:13px var(--mono);opacity:0;transition:opacity .4s}
-.verdict.show{opacity:1}
-.verdict.bad{background:rgba(178,59,59,.08);border:1px solid rgba(178,59,59,.32);color:#7a2a2a}
-.verdict.good{background:rgba(91,107,79,.09);border:1px solid rgba(91,107,79,.3);color:#3f4d36}
-
-/* chapter heads */
-.chap{padding:120px 0 0}
-.chap-head{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:end;margin-bottom:44px}
-.chap-num{font:700 clamp(64px,9vw,120px)/.8 var(--display);letter-spacing:-4px;color:transparent;-webkit-text-stroke:1.5px rgba(33,30,25,.18)}
-.eyebrow{font:600 12.5px var(--mono);letter-spacing:2px;text-transform:uppercase;color:var(--go-2)}
-h2{font:700 clamp(30px,4.2vw,50px)/1.05 var(--display);letter-spacing:-1.4px;margin:10px 0 0}
-.chap-sub{font-size:18px;color:var(--soft);max-width:780px;margin:18px 0 0}
-@media (max-width:640px){.chap-head{grid-template-columns:1fr;gap:6px}.chap{padding-top:88px}}
-h3{font:600 21px/1.25 var(--display);letter-spacing:-.3px;margin:0 0 10px}
+/* section heads */
+section{padding:0 0 64px}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:28px}
+.sec-head .kicker{white-space:nowrap}
+.sec-head hr.rule{flex:1}
+h2{font:500 26px var(--serif);letter-spacing:-.3px;margin:0;color:var(--ink)}
+h3{font:500 19px var(--serif);letter-spacing:-.2px;margin:0;color:var(--ink)}
 p{margin:0 0 14px}
-.muted{color:var(--muted)}
-.note{font-size:12.5px;color:var(--dim);margin:10px 0 0}
-.panel{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:26px}
 
-/* story (scrollytelling) */
-.story{display:grid;grid-template-columns:minmax(330px,430px) 1fr;gap:72px;align-items:start;margin-top:10px}
-.stage{position:sticky;top:78px;height:calc(100vh - 100px);max-height:960px;display:flex;flex-direction:column;border:1px solid var(--line-2);border-radius:24px;background:radial-gradient(420px 300px at 50% 0%,rgba(154,59,43,.05),transparent 70%),linear-gradient(180deg,var(--surface),var(--surface-2));padding:14px 10px 12px}
-.stage-top{display:flex;justify-content:center}
-.seg{display:inline-flex;gap:3px;padding:3px;border-radius:11px;background:rgba(33,30,25,.05);border:1px solid var(--line-2)}
-.seg button{border:0;background:none;padding:7px 12px;border-radius:8px;font:600 12px var(--mono);color:var(--muted);cursor:pointer}
-.seg button.on{background:var(--go);color:#fdf8f0}
-.seg button.on.one{background:var(--orange);color:#fdf8f0}
-#arch{flex:1;min-height:0;width:100%;display:block}
-.stage-cap{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;font:11.5px var(--mono);color:var(--muted);min-height:18px}
-.stage-cap i{display:inline-block;width:13px;height:9px;border-radius:3px;margin-right:6px;border:2px solid;vertical-align:-1px}
-.node{cursor:pointer;transition:opacity .35s}
-.node rect{fill:var(--surface);stroke-width:2.5;transition:fill .25s,filter .25s}
-.node text{fill:var(--text);font:500 15px var(--body);pointer-events:none}
-.node text.s{font-size:11.5px;fill:var(--muted)}
-.node.hl rect{fill:rgba(33,30,25,.05);filter:drop-shadow(0 0 6px currentColor)}
-#arch.focus .node:not(.hl){opacity:.28}
-#arch.focus .deco{opacity:.35}
-.deco{transition:opacity .35s}
-#arch.one .node.changed rect{stroke:var(--orange);fill:rgba(184,121,58,.08)}
-#arch.one .node.changed{color:var(--orange)}
-#arch.one .node.tuned rect{stroke:var(--green);stroke-dasharray:7 4}
-#arch.one .node.frozen rect{stroke:#9b9284}
-.badge{opacity:0;transition:opacity .3s;pointer-events:none}
-#arch.one .badge{opacity:1}
-.badge circle{fill:var(--orange)}
-.badge text{fill:#fdf8f0;font:700 12px var(--mono)}
-.badge.hl circle{fill:var(--text)}
-.wire{stroke:var(--green);stroke-width:2.4;fill:none}
-.wire-h{fill:var(--green)}
+/* experience */
+.entries{display:flex;flex-direction:column}
+.entry{padding:26px 0;border-top:1px solid var(--line)}
+.entries .entry:first-child{border-top:0;padding-top:0}
+.entry-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:2px}
+.role{font:500 19px var(--serif);color:var(--ink)}
+.at{font:16px var(--sans);color:var(--muted);font-weight:400}
+.dates{font:12.5px var(--mono);color:var(--muted);white-space:nowrap}
+.co{font-size:14px;color:var(--accent);margin:2px 0 12px}
+.award{display:inline-block;font:500 12.5px var(--sans);color:var(--sage);background:rgba(91,107,79,.09);padding:3px 10px;border-radius:3px;margin-bottom:12px}
+.entry ul{margin:8px 0 12px;padding:0;list-style:none}
+.entry li{position:relative;padding-left:16px;margin:7px 0;font-size:15px;color:var(--soft)}
+.entry li::before{content:"—";position:absolute;left:0;color:var(--line-2)}
+.stack{font:12.5px var(--mono);color:var(--muted);margin-top:10px}
 
-.steps{padding:6vh 0 20vh}
-.step{min-height:78vh;display:flex;align-items:center}
-.step:first-child{min-height:60vh}
-.card{width:100%;border:1px solid var(--line);border-radius:22px;background:var(--surface);padding:30px;transition:opacity .4s,border-color .4s,transform .4s;opacity:.38}
-.step.on .card{opacity:1;border-color:var(--line-2)}
-.step.on.one .card{border-color:rgba(184,121,58,.4)}
-.pkg{display:inline-flex;align-items:center;gap:8px;font:500 12.5px var(--mono);color:var(--go-2);background:rgba(154,59,43,.08);border:1px solid rgba(154,59,43,.28);padding:4px 10px;border-radius:8px;margin-bottom:14px}
-.one .pkg{color:#6b4a1f;background:rgba(184,121,58,.1);border-color:rgba(184,121,58,.32)}
-.card h3{font-size:clamp(22px,2.4vw,28px);margin-bottom:12px}
-.card .lead{color:var(--soft);font-size:16.5px}
-.formula{font:14px var(--mono);background:rgba(33,30,25,.045);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:16px 0;color:var(--go);overflow-x:auto;white-space:nowrap}
-.facts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
-@media (max-width:560px){.facts{grid-template-columns:1fr}}
-.fact{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:11px 14px}
-.fact small{display:block;font:600 10.5px var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-bottom:3px}
-.fact div{font-size:14px;color:var(--soft)}
-.fact.wide{grid-column:1/-1}
-.ba{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
-@media (max-width:560px){.ba{grid-template-columns:1fr}}
-.ba div{border-radius:12px;padding:12px 14px;font-size:14px}
-.ba small{display:block;font:600 10.5px var(--mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
-.ba .was{background:rgba(33,30,25,.03);border:1px solid var(--line);color:var(--muted)}
-.ba .was small{color:var(--dim)}
-.ba .now{background:rgba(184,121,58,.09);border:1px solid rgba(184,121,58,.32);color:#6b4a1f}
-.ba .now small{color:var(--orange)}
-.divider .card{background:none;border:0;padding:0}
-.divider h3{font-size:clamp(28px,3.4vw,40px);letter-spacing:-1px;line-height:1.1}
-.divider .big{font:700 14px var(--mono);letter-spacing:2px;text-transform:uppercase}
-.nums{display:flex;gap:26px;flex-wrap:wrap;margin-top:18px}
-.nums div b{display:block;font:700 28px var(--display);letter-spacing:-.5px}
-.nums div span{font-size:13px;color:var(--muted)}
-@media (max-width:900px){
-  .story{grid-template-columns:1fr;gap:0}
-  .stage{top:62px;height:46vh;z-index:5;border-radius:0 0 18px 18px;border-top:0;margin:0 -16px;background:rgba(250,248,244,.92);backdrop-filter:blur(10px)}
-  .steps{padding-top:2vh}
-  .step,.step:first-child{min-height:auto;padding:22px 0}
-  .card{opacity:1;padding:22px}
-}
+/* skills */
+.skillrow{display:grid;grid-template-columns:150px 1fr;gap:20px;padding:18px 0;border-top:1px solid var(--line)}
+.skillrow:first-child{border-top:0;padding-top:0}
+.skillrow .label{font:600 12px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--sage);padding-top:2px}
+.skillrow p{margin:0;color:var(--soft);font-size:15px}
+@media (max-width:560px){.skillrow{grid-template-columns:1fr;gap:4px}}
 
-/* decide */
-.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-@media (max-width:900px){.two{grid-template-columns:1fr}}
-.maskbox{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;margin-top:12px}
-.mask{display:grid;grid-template-columns:repeat(14,1fr);gap:3px;width:min(100%,300px)}
-.mask div{aspect-ratio:1;border-radius:3px;background:rgba(33,30,25,.05);transition:opacity .15s}
-.mask .st{background:rgba(92,111,138,.6)}.mask .q1{background:rgba(184,121,58,.8)}.mask .q2{background:rgba(91,107,79,.65)}.mask .q3{background:rgba(178,59,59,.7)}
-.mask .dm{opacity:.15}
-.legend{display:grid;gap:7px;font:12.5px var(--mono);color:var(--muted);min-width:160px}
-.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:8px;vertical-align:-1px}
-.eq{font:15px var(--mono);text-align:center;padding:20px 12px;margin:14px 0;background:rgba(33,30,25,.045);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
-.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 6px}
-.frac span:first-child{border-bottom:1px solid var(--muted);padding:0 6px 3px}.frac span:last-child{padding:3px 6px 0}
-.guar{margin-top:18px;padding:18px 20px;border-radius:14px;border:1px solid rgba(91,107,79,.35);background:radial-gradient(500px 160px at 0% 0%,rgba(91,107,79,.1),transparent),var(--surface-2)}
-.guar b{color:var(--green)}
+/* projects */
+.proj{padding:22px 0;border-top:1px solid var(--line)}
+.proj:first-child{border-top:0;padding-top:0}
+.proj-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.proj-tag{font:12px var(--mono);color:var(--muted)}
+.proj p{color:var(--soft);font-size:15px;margin:0 0 6px}
 
-.lab{margin-top:18px;border:1px solid var(--line-2);border-radius:22px;background:var(--surface);overflow:hidden}
-.lab-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:20px 24px;border-bottom:1px solid var(--line)}
-.lab-head h3{margin:0}
-.lab-grid{display:grid;grid-template-columns:1fr 1fr}
-@media (max-width:980px){.lab-grid{grid-template-columns:1fr}}
-.lab-in{padding:22px 24px;border-right:1px solid var(--line)}
-@media (max-width:980px){.lab-in{border-right:0;border-bottom:1px solid var(--line)}}
-.lab-in label{display:block;font:600 11px var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin:0 0 6px}
-textarea,input,select{width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;color:var(--text);font:14px var(--body);padding:10px 12px;outline:none;transition:border-color .2s}
-textarea{min-height:84px;resize:vertical;font-family:var(--mono);font-size:13px}
-textarea:focus,input:focus,select:focus{border-color:var(--go)}
-.qed{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:12px;background:var(--surface-2);display:grid;grid-template-columns:130px 110px 1fr 34px;gap:8px}
-.qed .full{grid-column:1/-1}
-.qed button.x{border:1px solid var(--line-2);background:none;border-radius:9px;color:var(--muted);cursor:pointer}
-.qed button.x:hover{color:var(--red);border-color:var(--red)}
-@media (max-width:560px){.qed{grid-template-columns:1fr 1fr 34px}.qed .nm{grid-column:1/3}.qed .ty{grid-column:1/3}}
-.add{margin-top:12px}
-.lab-out{padding:0;min-width:0}
-.tabs{display:flex;gap:2px;padding:12px 16px 0;border-bottom:1px solid var(--line);overflow-x:auto}
-.tabs button{border:0;background:none;padding:10px 14px;font:600 13px var(--display);color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
-.tabs button.on{color:var(--text);border-color:var(--go)}
-.tabpane{padding:20px 24px;display:none}
-.tabpane.on{display:block}
-.out{font:12.8px/1.65 var(--mono);white-space:pre-wrap;word-break:break-word;background:rgba(33,30,25,.045);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--soft);max-height:430px;overflow:auto;margin:0}
-.out .lb{color:var(--green);font-weight:700}.out .an{background:var(--yellow);color:#2b2008;border-radius:4px;padding:0 3px}.out .cm{color:var(--dim)}.out .k{color:var(--pink)}.out .s{color:var(--green)}
-#lab-mask{width:100%;max-width:360px;height:auto;display:block}
-.copy{float:right;margin:-4px 0 8px}
+/* education */
+.edu{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
 
-/* train */
-.pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}
-@media (max-width:980px){.pipe{grid-template-columns:1fr;gap:22px}}
-.pstep{position:relative;border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:18px 20px}
-.pstep::after{content:"→";position:absolute;right:-16px;top:50%;transform:translateY(-50%);color:var(--go-2);font:700 16px var(--mono)}
-.pstep:last-child::after{display:none}
-@media (max-width:980px){.pstep::after{content:"↓";right:auto;left:50%;top:auto;bottom:-21px;transform:translateX(-50%)}}
-.pstep small{font:600 10.5px var(--mono);letter-spacing:1px;text-transform:uppercase}
-.pstep b{display:block;font:600 16.5px var(--display);margin:5px 0}
-.pstep p{font-size:13.5px;color:var(--muted);margin:0}
-.techs{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:18px}
-@media (max-width:1000px){.techs{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:560px){.techs{grid-template-columns:1fr}}
-.tech{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:22px}
-.tech .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font:700 13px var(--mono);margin-bottom:14px}
-.tech p{font-size:14px;color:var(--muted);margin:0}
-.tech .big{font:700 23px var(--display);margin-top:12px;letter-spacing:-.4px}
-.chart{margin-top:18px}
-.chart-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:10px}
-.lg{display:flex;gap:18px;flex-wrap:wrap;font:12.5px var(--mono);color:var(--soft)}
-.lg i{display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:middle;margin-right:7px}
-.chart-wrap{position:relative}
-#loss{width:100%;height:auto;display:block;touch-action:pan-y}
-#loss text{fill:var(--muted);font:11px var(--mono)}
-.tip{position:absolute;pointer-events:none;background:var(--surface-3);border:1px solid var(--line-2);border-radius:10px;padding:8px 11px;font:12px/1.6 var(--mono);color:var(--soft);opacity:0;transition:opacity .15s;white-space:nowrap;transform:translate(-50%,-110%)}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
-@media (max-width:700px){.kpis{grid-template-columns:1fr}}
-.kpi{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--surface-2)}
-.kpi b{display:block;font:700 24px var(--display)}
-.kpi span{font-size:13px;color:var(--muted)}
-.memrow{margin:12px 0}
-.memrow .lb{display:flex;justify-content:space-between;font:12.5px var(--mono);color:var(--soft);margin-bottom:6px;gap:10px}
-.mt{position:relative;height:12px;background:rgba(33,30,25,.05);border-radius:7px}
-.mf{height:100%;width:0;border-radius:7px;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
-.lim{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--yellow)}
-.limlab{font:11px var(--mono);color:var(--yellow);margin:18px 0 -4px}
-.skills{display:grid;gap:8px;margin-top:6px}
-.sk{display:grid;grid-template-columns:112px 1fr 60px;gap:12px;align-items:center;font:12.5px var(--mono)}
-.sk .n{color:var(--soft)}.sk .v{color:var(--muted);text-align:right}
-.sk .tr{height:9px;background:rgba(33,30,25,.05);border-radius:6px;overflow:hidden}
-.sk .fl{height:100%;width:0;border-radius:6px;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
-.sk .src{grid-column:1/-1;font:12px var(--body);color:var(--dim);margin:-5px 0 2px}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
-th{font:600 11px var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
-tr:last-child td{border-bottom:0}
+/* closing */
+.closing{padding:8px 0 70px}
+blockquote{margin:0 0 26px;padding:0;font:italic 500 clamp(22px,3.4vw,30px)/1.4 var(--serif);color:var(--ink);letter-spacing:-.2px}
+.closing .hlinks{margin-bottom:0;font-size:15px}
 
-/* play */
-.play{display:grid;grid-template-columns:auto 1fr;gap:44px;align-items:center}
-@media (max-width:900px){.play{grid-template-columns:1fr;gap:26px}}
-.board{font:15px/1.28 var(--mono);white-space:pre;background:var(--surface-2);border:1px solid var(--line-2);border-radius:18px;padding:20px 22px;color:var(--dim);letter-spacing:1px;justify-self:start;max-width:100%;overflow-x:auto;outline:none}
-.board:focus-visible{border-color:var(--go)}
-.board .H{color:var(--green);font-weight:700}
-.board .S{color:#6f8a5c}.board .A{color:var(--red);font-weight:700}.board .W{color:var(--muted)}
-.moves{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:460px;margin-top:16px}
-.mv{padding:11px 6px;text-align:center;border-radius:12px;border:1px solid var(--line);background:var(--surface);font:600 13px var(--mono);color:var(--muted);transition:all .2s;cursor:pointer}
-.mv b{display:block;font-size:10.5px;color:var(--dim);margin-bottom:2px}
-.mv.pick{border-color:var(--green);color:#fdf8f0;background:var(--green)}
-.mv.pick b{color:#e4ded0}
-.ctrl{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
-.meta{font:12.5px var(--mono);color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
-.meta b{color:var(--text)}
-
-/* sources */
-.tabs.big{padding:0;margin-bottom:18px;border-bottom:1px solid var(--line)}
-.tabs.big button{font-size:15px;padding:12px 18px}
-.lin{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
-.lin td:first-child{color:var(--text);min-width:190px}
-.lin td code{font-size:12px}
-.lin td:last-child{white-space:nowrap;font:12.5px var(--mono);color:var(--muted)}
-details.ch{border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:10px}
-details.ch summary{list-style:none;cursor:pointer;padding:15px 20px;display:grid;grid-template-columns:150px 1fr 18px;gap:16px;align-items:center}
-details.ch summary::-webkit-details-marker{display:none}
-details.ch summary .q{font:600 11.5px var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
-details.ch summary .a{font:600 15.5px var(--display)}
-details.ch summary .pl{color:var(--muted);transition:transform .2s}
-details.ch[open] summary .pl{transform:rotate(45deg)}
-details.ch .bd{padding:0 20px 16px;display:grid;grid-template-columns:150px 1fr;gap:6px 16px;font-size:14.5px}
-details.ch .bd .x{font:600 11px var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--red);padding-top:3px}
-details.ch .bd .y{color:var(--green)}
-@media (max-width:640px){details.ch summary{grid-template-columns:1fr 18px}details.ch summary .q{grid-column:1/-1}details.ch .bd{grid-template-columns:1fr}}
-
-/* end */
-.endcard{display:grid;grid-template-columns:1.2fr .8fr;gap:30px;align-items:center;border:1px solid var(--line-2);border-radius:26px;padding:44px;background:radial-gradient(700px 300px at 100% 0%,rgba(154,59,43,.16),transparent),var(--surface)}
-@media (max-width:900px){.endcard{grid-template-columns:1fr;padding:28px}}
-.endcard ul{margin:14px 0 0;padding-left:18px;color:var(--soft)}
-.endcard li{margin:6px 0}
-.limits{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
-@media (max-width:900px){.limits{grid-template-columns:1fr}}
-.limits div{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:var(--surface)}
-.limits b{display:block;font:600 15px var(--display);margin-bottom:6px}
-.limits p{font-size:14px;color:var(--muted);margin:0}
-footer{border-top:1px solid var(--line);margin-top:110px;padding:34px 0 50px;color:var(--muted);font-size:13.5px}
-footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
-footer svg{height:14px;width:auto;vertical-align:-2px}
-
-.rv{opacity:0;transform:translateY(16px);transition:opacity .7s,transform .7s}
-.rv.in{opacity:1;transform:none}
-.two>*,.hero-grid>*,.story>*,.lab-grid>*,.play>*{min-width:0}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}html{scroll-behavior:auto}}
+footer{border-top:1px solid var(--line);padding:28px 0 60px;color:var(--muted);font-size:13px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer a{color:var(--muted);border-color:var(--line-2)}
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="go-mark" viewBox="0 0 207 78"><g fill="#00acd7" fill-rule="evenodd"><path d="m16.2 24.1c-.4 0-.5-.2-.3-.5l2.1-2.7c.2-.3.7-.5 1.1-.5h35.7c.4 0 .5.3.3.6l-1.7 2.6c-.2.3-.7.6-1 .6z"/><path d="m1.1 33.3c-.4 0-.5-.2-.3-.5l2.1-2.7c.2-.3.7-.5 1.1-.5h45.6c.4 0 .6.3.5.6l-.8 2.4c-.1.4-.5.6-.9.6z"/><path d="m25.3 42.5c-.4 0-.5-.3-.3-.6l1.4-2.5c.2-.3.6-.6 1-.6h20c.4 0 .6.3.6.7l-.2 2.4c0 .4-.4.7-.7.7z"/><g transform="translate(55)"><path d="m74.1 22.3c-6.3 1.6-10.6 2.8-16.8 4.4-1.5.4-1.6.5-2.9-1-1.5-1.7-2.6-2.8-4.7-3.8-6.3-3.1-12.4-2.2-18.1 1.5-6.8 4.4-10.3 10.9-10.2 19 .1 8 5.6 14.6 13.5 15.7 6.8.9 12.5-1.5 17-6.6.9-1.1 1.7-2.3 2.7-3.7-3.6 0-8.1 0-19.3 0-2.1 0-2.6-1.3-1.9-3 1.3-3.1 3.7-8.3 5.1-10.9.3-.6 1-1.6 2.5-1.6h36.4c-.2 2.7-.2 5.4-.6 8.1-1.1 7.2-3.8 13.8-8.2 19.6-7.2 9.5-16.6 15.4-28.5 17-9.8 1.3-18.9-.6-26.9-6.6-7.4-5.6-11.6-13-12.7-22.2-1.3-10.9 1.9-20.7 8.5-29.3 7.1-9.3 16.5-15.2 28-17.3 9.4-1.7 18.4-.6 26.5 4.9 5.3 3.5 9.1 8.3 11.6 14.1.6.9.2 1.4-1 1.7z"/><path d="m107.2 77.6c-9.1-.2-17.4-2.8-24.4-8.8-5.9-5.1-9.6-11.6-10.8-19.3-1.8-11.3 1.3-21.3 8.1-30.2 7.3-9.6 16.1-14.6 28-16.7 10.2-1.8 19.8-.8 28.5 5.1 7.9 5.4 12.8 12.7 14.1 22.3 1.7 13.5-2.2 24.5-11.5 33.9-6.6 6.7-14.7 10.9-24 12.8-2.7.5-5.4.6-8 .9zm23.8-40.4c-.1-1.3-.1-2.3-.3-3.3-1.8-9.9-10.9-15.5-20.4-13.3-9.3 2.1-15.3 8-17.5 17.4-1.8 7.8 2 15.7 9.2 18.9 5.5 2.4 11 2.1 16.3-.6 7.9-4.1 12.2-10.5 12.7-19.1z" fill-rule="nonzero"/></g></g></symbol></defs></svg>
-<div id="progress"></div>
 
 <header class="nav">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="Golem, back to top"><svg viewBox="0 0 207 78" aria-hidden="true"><use href="#go-mark"/></svg><i></i>Golem</a>
-    <ul class="chapters">
-      <li><a href="#build"><b>01</b>Build</a></li>
-      <li><a href="#transform"><b>02</b>Transform</a></li>
-      <li><a href="#decide"><b>03</b>Decide</a></li>
-      <li><a href="#train"><b>04</b>Train</a></li>
-      <li><a href="#play"><b>05</b>Play</a></li>
-      <li><a href="#sources"><b>06</b>Sources</a></li>
-    </ul>
-    <a class="btn sm primary" href="assets/golem-one-xl-model-card.pdf">Model card</a>
+    <a class="brand" href="#top">Iyed Sebai</a>
+    <nav class="links">
+      <a href="#experience">Experience</a>
+      <a href="#skills">Skills</a>
+      <a href="#projects">Projects</a>
+      <a href="#contact">Contact</a>
+      <a class="cv" href="assets/iyed-sebai-cv.pdf">CV ↓</a>
+      <a href="golem.html">Golem →</a>
+    </nav>
   </div>
 </header>
 
 <main id="top">
+<div class="wrap">
 
 <section class="hero">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div>
-        <span class="pill"><span class="dot"></span>Golem-One XL · training, 46% done</span>
-        <h1>GPT-2, rebuilt in Go.<br><em>Taught to decide.</em></h1>
-        <p class="lede">We rebuilt GPT-2's architecture <b>layer by layer in Go</b>, each layer following the paper that introduced it. Then we <b>changed it in five places</b> and trained it on decisions. Golem-One XL answers typed questions with <b>a probability for every allowed answer</b>. It answers them all in one pass, and it can't give an answer that wasn't offered.</p>
-        <div class="cta">
-          <a class="btn primary" href="#build">Start the story ↓</a>
-          <a class="btn" href="#decide">Build a request</a>
-        </div>
-        <div class="madewith"><svg viewBox="0 0 207 78" aria-label="Go"><use href="#go-mark"/></svg><span>Standard library only · no ML framework · Go assembly for ARM64 · CUDA for training</span></div>
-      </div>
+  <div class="kicker">AI Engineer · RAG &amp; Agentic Systems</div>
+  <h1>I build LLM systems<br>that hold up under audit.</h1>
+  <p class="intro">5+ years of software experience, the last two spent on <b>retrieval-augmented and agentic systems</b> built for places where being wrong is expensive. I took a governed LLM platform from raw document corpora into daily production inside a Saudi government legal department, across three services now in active use. Off the clock, I write <b>Golem</b> — GPT-2's architecture rebuilt from scratch in Go.</p>
+  <p class="meta">Tunis, Tunisia · Remote (GMT+1, full GST overlap) · Open to relocating to Saudi Arabia</p>
+  <p class="hlinks">
+    <a href="mailto:iyed.se1ai@gmail.com">Email</a><span class="sep">·</span>
+    <a href="https://github.com/The-iyed" rel="noopener">GitHub</a><span class="sep">·</span>
+    <a href="https://www.linkedin.com/in/sebai-iyed/" rel="noopener">LinkedIn</a><span class="sep">·</span>
+    <a href="assets/iyed-sebai-cv.pdf">Download CV</a>
+  </p>
 
-      <div class="live rv" aria-label="Example decision">
-        <div class="live-head"><span>POST /v1/decide</span><span class="ok">one pass</span></div>
-        <div class="live-body">
-          <div class="live-state"><small>state</small><span id="typed"></span><span class="caret"></span></div>
-          <div class="qs" id="live-qs"></div>
-        </div>
-        <div class="live-foot"><span>Real output: golem-medium, <em>before</em> decision training (Report 9). The urgency answer is wrong. Training fixes that.</span><button id="replay-live">↻ replay</button></div>
-      </div>
+  <div class="strip">
+    <div class="stat"><b>5+</b><span>years in software engineering</span></div>
+    <div class="stat"><b>3</b><span>services live in a Saudi ministry</span></div>
+    <div class="stat"><b>1</b><span>Silver Stevie&reg; Award, MENA 2026</span></div>
+    <div class="stat"><b>3</b><span>languages — Arabic, English, French</span></div>
+  </div>
+</section>
+
+<section id="experience">
+  <div class="sec-head"><div class="kicker">Experience</div><hr class="rule"></div>
+
+  <div class="entries">
+    <div class="entry">
+      <span class="award">🏆 Silver Stevie&reg; Award — Innovation in AI, Government, 2026 MENA Stevie Awards</span>
+      <div class="entry-head"><span class="role">AI Engineer &amp; Tech Lead <span class="at">— MOMRAH, Saudi Ministry</span></span><span class="dates">Feb 2025 – Present</span></div>
+      <div class="co">Legal Department · Remote via Tryloop</div>
+      <p>Led design and delivery of <b style="color:var(--ink)">Sanad AI</b>, a governed LLM platform built under strict security, compliance, and audit constraints. Three services now run in daily production use.</p>
+      <ul>
+        <li>Shipped a pleadings copilot with human-in-the-loop review: evidence-grounded drafting, structured citations, and guardrails constraining generation to retrieved evidence.</li>
+        <li>Built tool-calling agents querying internal legal sources, producing benchmark-style comparisons with every claim traceable to its source document.</li>
+        <li>Delivered a rulings analysis engine generating legal KPIs and feeding learning signals back into the drafting workflow.</li>
+        <li>Diagnosed a retrieval defect where an over-aggressive character cap was truncating judicial reasoning corpus-wide; re-scoped extraction and surfaced each ruling's statutory basis for the first time.</li>
+        <li>Instrumented step-level observability across agent runs so legal and audit teams can reconstruct exactly how any response was produced.</li>
+      </ul>
+      <div class="stack">Azure · Python · Docker · PostgreSQL/MongoDB · hybrid retrieval · LLM orchestration &amp; evaluation</div>
     </div>
 
-    <div class="stats rv">
-      <div class="stat"><b data-count="1.56" data-dec="2" data-suf="B" style="color:var(--go-2)">1.56B</b><span>parameters: the exact GPT-2 XL shape</span></div>
-      <div class="stat"><b data-count="0" style="color:var(--green)">0</b><span>ML frameworks: every layer is our own Go</span></div>
-      <div class="stat"><b data-count="112" style="color:var(--yellow)">112</b><span>GFLOP/s per core from our NEON kernel</span></div>
-      <div class="stat"><b data-count="28" style="color:var(--pink)">28</b><span>open, human-labeled datasets</span></div>
-      <div class="stat"><b data-count="5" style="color:var(--orange)">5</b><span>changes from GPT-2 to Golem-One</span></div>
+    <div class="entry">
+      <div class="entry-head"><span class="role">AI Software Engineer <span class="at">— Builtop</span></span><span class="dates">Mar 2024 – Jan 2025</span></div>
+      <div class="co">Remote, Saudi Arabia</div>
+      <p>Built a customer-facing buyer assistant for buy-now-pay-later users, answering eligibility, instalment-plan, and order-status questions grounded in live platform data, plus an internal operations assistant giving the ops team natural-language access to platform statistics. Integrated both into production and release processes within a 7-engineer team.</p>
+      <div class="stack">LLM assistants · natural-language querying · backend integration · automation</div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-head"><span class="role">Backend Engineer <span class="at">— Softylines</span></span><span class="dates">Mar 2021 – Feb 2024</span></div>
+      <div class="co">Customer Engagement Platform</div>
+      <p>Architected an event-driven system with Kafka (pub/sub, consumer groups, retry/DLQ) to decouple domains. Led a 10-engineer team migrating a monolith to microservices, and stabilised production by resolving high-impact incidents across messaging, webhooks, and real-time WebSocket surfaces.</p>
+      <div class="stack">Go · Node.js · Kafka · WebSockets · PostgreSQL/MongoDB · Docker</div>
     </div>
   </div>
 </section>
 
-<section class="idea" id="idea">
-  <div class="wrap">
-    <div class="eyebrow">The idea in ten seconds</div>
-    <h2>Stop generating answers. Score them.</h2>
-    <p class="chap-sub">A token-by-token model decides by <em>writing</em>: one full pass per token, 50,257 candidates each time, and nothing stops it writing an answer that isn't on the list. Golem-One reads the <b>same network</b> differently.</p>
-    <div class="idea-grid rv" id="ways">
-      <div class="way">
-        <span class="tag" style="color:var(--orange)">GPT-2 · token by token</span>
-        <h3>Generate, then hope it parses</h3>
-        <div class="toks" id="gen"></div>
-        <div class="meter"><span>passes <b id="gen-n">0</b></span><span>scored per step <b>50,257</b></span><span>uncertainty <b>lost</b></span></div>
-        <div class="verdict bad" id="gen-v">✗ "payments" isn't one of the four teams. Now the program has to parse, validate and retry.</div>
-      </div>
-      <div class="way">
-        <span class="tag" style="color:var(--green)">Golem-One · System One</span>
-        <h3>Score the declared answers, all at once</h3>
-        <div id="one-bars"></div>
-        <div class="meter"><span>passes <b>state + 1</b></span><span>scored <b>K = 4</b></span><span>confidence <b>0.32</b></span></div>
-        <div class="verdict good" id="one-v">✓ An answer that wasn't declared is impossible by construction, and the full distribution comes back.</div>
-      </div>
-    </div>
-    <p class="note">Left: an illustration of generated text. Right: the real zero-shot probabilities from Report 9.</p>
+<section id="skills">
+  <div class="sec-head"><div class="kicker">Skills</div><hr class="rule"></div>
+  <div class="skillrow">
+    <div class="label">AI / LLM</div>
+    <p>RAG architecture, hybrid search (vector + lexical), chunking &amp; metadata strategy, grounded generation with citations, tool-calling agents, human-in-the-loop workflows, prompt engineering, evaluation &amp; regression testing, hallucination guardrails.</p>
+  </div>
+  <div class="skillrow">
+    <div class="label">AI tooling</div>
+    <p>OpenAI and Anthropic models, open-source/self-hosted models, LangChain, text-embedding-3-large, semantic reranking, Azure AI Search, Neo4j (graph-backed retrieval).</p>
+  </div>
+  <div class="skillrow">
+    <div class="label">Languages</div>
+    <p>Python, Go, TypeScript/JavaScript, Java.</p>
+  </div>
+  <div class="skillrow">
+    <div class="label">Backend</div>
+    <p>FastAPI, NestJS, Express, Gin, REST, WebSockets.</p>
+  </div>
+  <div class="skillrow">
+    <div class="label">Data &amp; infra</div>
+    <p>PostgreSQL, MongoDB, Neo4j, Azure, Docker, CI/CD, on-prem &amp; air-gapped deployment.</p>
+  </div>
+  <div class="skillrow">
+    <div class="label">Observability</div>
+    <p>Step-level agent tracing, usage analytics, retrieval coverage analysis, evaluation harnesses.</p>
   </div>
 </section>
 
-<!-- STORY: BUILD + TRANSFORM -->
-<section class="chap" id="build">
-  <div class="wrap">
-    <div class="chap-head">
-      <div class="chap-num">01</div>
-      <div><div class="eyebrow">Build</div><h2>Every box of GPT-2, hand-written in Go.</h2></div>
-    </div>
-    <p class="chap-sub" style="margin-top:-24px;margin-bottom:24px">Scroll: the diagram follows the story. Each block follows its paper, and each was proven correct before moving on to the next. You can also click any block.</p>
+<section id="projects">
+  <div class="sec-head"><div class="kicker">Projects</div><hr class="rule"></div>
 
-    <div class="story">
-      <div class="stage" aria-label="Architecture diagram">
-        <div class="stage-top"><div class="seg" role="group" aria-label="Which model">
-          <button class="on" data-go="build">GPT-2 XL</button><button data-go="transform" class="one">Golem-One XL</button>
-        </div></div>
-        <svg id="arch" viewBox="0 0 440 890" role="img" aria-label="Transformer diagram"></svg>
-        <div class="stage-cap" id="cap"></div>
-      </div>
-      <div class="steps" id="steps"></div>
-    </div>
+  <div class="proj">
+    <div class="proj-head"><h3>Golem</h3><span class="proj-tag">flagship · Go</span></div>
+    <p>GPT-2's architecture rebuilt from scratch in Go, layer by layer, then changed in five places and trained to score declared answers instead of generating text. Standard library only — no ML framework.</p>
+    <a href="golem.html">Read the story →</a>
+  </div>
+  <div class="proj">
+    <div class="proj-head"><h3>go-load-balancer</h3><span class="proj-tag">Go · 12★</span></div>
+    <p>A production-ready HTTP load balancer.</p>
+    <a href="https://github.com/The-iyed/go-load-balancer" rel="noopener">View on GitHub →</a>
+  </div>
+  <div class="proj">
+    <div class="proj-head"><h3>go-cache</h3><span class="proj-tag">Go · 6★</span></div>
+    <p>A high-performance Redis-like in-memory key-value store: transactions, lists, sets, JSON, pub/sub, TTL.</p>
+    <a href="https://github.com/The-iyed/go-cache" rel="noopener">View on GitHub →</a>
+  </div>
+  <div class="proj">
+    <div class="proj-head"><h3>rag-gateway-service</h3><span class="proj-tag">Python</span></div>
+    <p>A FastAPI gateway using OpenAI embeddings for semantic topic routing across RAG backends.</p>
+    <a href="https://github.com/The-iyed/rag-gateway-service" rel="noopener">View on GitHub →</a>
+  </div>
+  <div class="proj">
+    <div class="proj-head"><h3>Pathfinding-Visualizer</h3><span class="proj-tag">TypeScript · 7★</span></div>
+    <p>An interactive pathfinding algorithm visualiser (A*, Dijkstra, BFS/DFS).</p>
+    <a href="https://github.com/The-iyed/Pathfinding-Visualizer" rel="noopener">View on GitHub →</a>
+  </div>
+
+  <div class="proj edu" style="padding-top:22px">
+    <div><h3 style="font-size:17px">B.Sc. in Computer Science</h3><span style="color:var(--muted);font-size:14.5px">Horizon School of Digital Technologies</span></div>
+    <span class="dates">June 2025</span>
   </div>
 </section>
 
-<!-- DECIDE -->
-<section class="chap" id="decide">
-  <div class="wrap">
-    <div class="chap-head">
-      <div class="chap-num">03</div>
-      <div><div class="eyebrow">Decide</div><h2>How one pass answers every question.</h2></div>
-    </div>
-    <div class="two rv">
-      <div class="panel">
-        <div class="eyebrow" style="color:var(--orange)">The segment mask</div>
-        <h3 style="margin-top:6px">Read the state once. Answer the questions in parallel.</h3>
-        <p class="muted" style="font-size:15px">Every question sees the whole state and its own tokens, never another question. Each result equals a separate forward pass, to 10⁻⁴. <b style="color:var(--text)">Hover or tap a row.</b></p>
-        <div class="maskbox">
-          <div class="mask" id="mask" aria-label="Attention mask: a 5-token state and three questions"></div>
-          <div class="legend"><span><i style="background:rgba(92,111,138,.8)"></i>state</span><span><i style="background:rgba(184,121,58,.9)"></i>question 1</span><span><i style="background:rgba(91,107,79,.8)"></i>question 2</span><span><i style="background:rgba(178,59,59,.85)"></i>question 3</span><span id="mask-say" style="margin-top:6px;color:var(--soft)">row = token that looks<br>column = token looked at</span></div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="eyebrow" style="color:var(--green)">The restricted readout</div>
-        <h3 style="margin-top:6px">Score only the K declared answers.</h3>
-        <p class="muted" style="font-size:15px">At each question's <code>Answer:</code> slot, only the tied-embedding rows of its option labels are scored and renormalized:</p>
-        <div class="eq">p(k) = <span class="frac"><span>exp(e<sub>ℓₖ</sub>ᵀ h / T)</span><span>Σ<sub>j≤K</sub> exp(e<sub>ℓⱼ</sub>ᵀ h / T)</span></span> &nbsp; c = 1 − H(p)/log K</div>
-        <p class="muted" style="font-size:14.5px">That is K dot products instead of 50,257. <i>T</i> is fitted on held-out data: it changes how sure the model says it is, never which answer it picks.</p>
-        <div class="guar"><b>Valid by construction.</b> Only the declared options have any probability, so whatever the weights are, the model can't produce an answer that wasn't offered. Training makes the answers <em>correct</em>; the construction already makes them <em>valid</em>.</div>
-      </div>
-    </div>
-
-    <div class="lab rv" id="lab">
-      <div class="lab-head">
-        <div><div class="eyebrow">Request builder</div><h3 style="margin-top:4px">Write a state and questions. See exactly what Golem-One reads.</h3></div>
-        <button class="btn sm" id="lab-reset">Reset example</button>
-      </div>
-      <div class="lab-grid">
-        <div class="lab-in">
-          <label for="lab-state">State</label>
-          <textarea id="lab-state"></textarea>
-          <div id="lab-qs"></div>
-          <button class="btn sm add" id="lab-add">+ Add a question</button>
-        </div>
-        <div class="lab-out">
-          <div class="tabs" role="tablist">
-            <button class="on" data-tab="t-prompt" role="tab">Prompt layout</button>
-            <button data-tab="t-mask" role="tab">Attention mask</button>
-            <button data-tab="t-json" role="tab">API request</button>
-          </div>
-          <div class="tabpane on" id="t-prompt"><pre class="out" id="lab-prompt"></pre><p class="note">Each question is its own segment after the state. Every option's label (A, B, C, …) is one GPT-2 token, and the model is read at the highlighted <code>Answer:</code> slot.</p></div>
-          <div class="tabpane" id="t-mask"><svg id="lab-mask" viewBox="0 0 300 300" aria-label="Attention mask for your request"></svg><p class="note" id="lab-mask-note"></p></div>
-          <div class="tabpane" id="t-json"><button class="btn sm copy" id="lab-copy">Copy</button><pre class="out" id="lab-json"></pre><p class="note">Send it to a Golem server (<code>go-llm serve</code>) at <code>POST /v1/decide</code>. This page builds the request but doesn't run the model.</p></div>
-        </div>
-      </div>
-    </div>
-  </div>
+<section class="closing" id="contact">
+  <div class="sec-head"><div class="kicker">Contact</div><hr class="rule"></div>
+  <blockquote>"Let's build something that holds up when someone asks why it decided what it decided."</blockquote>
+  <p class="hlinks">
+    <a href="mailto:iyed.se1ai@gmail.com">iyed.se1ai@gmail.com</a><span class="sep">·</span>
+    <a href="https://www.linkedin.com/in/sebai-iyed/" rel="noopener">linkedin.com/in/sebai-iyed</a><span class="sep">·</span>
+    <a href="https://github.com/The-iyed" rel="noopener">github.com/The-iyed</a>
+  </p>
 </section>
 
-<!-- TRAIN -->
-<section class="chap" id="train">
-  <div class="wrap">
-    <div class="chap-head">
-      <div class="chap-num">04</div>
-      <div><div class="eyebrow">Train</div><h2>1.56B parameters on two free GPUs.</h2></div>
-    </div>
-    <div class="pipe rv">
-      <div class="pstep"><small style="color:var(--muted)">Start</small><b>GPT-2 XL weights</b><p>OpenAI's released file, 1.56B parameters.</p></div>
-      <div class="pstep"><small style="color:var(--go-2)">Load</small><b>Golem engine</b><p>Our own Go tokenizer and blocks, plus the CUDA engine.</p></div>
-      <div class="pstep" style="border-color:rgba(184,121,58,.45)"><small style="color:var(--orange)">Train on decisions</small><b>LoRA, fp16, 2×T4</b><p>549k decisions, 40k explanations, 60k Snake moves.</p></div>
-      <div class="pstep"><small style="color:var(--green)">Merge</small><b>W + α/r · AB</b><p>The adapters are folded back into the weights: an ordinary Golem checkpoint.</p></div>
-      <div class="pstep"><small style="color:var(--pink)">Serve</small><b>Golem-One XL</b><p>Served at <code>/v1/decide</code>, and it keeps learning from its own games.</p></div>
-    </div>
-    <div class="techs rv">
-      <div class="tech"><div class="ic" style="background:rgba(154,59,43,.12);color:var(--go-2)">fp16</div><h3>Mixed precision</h3><p>Tensor-core products in fp16. Master weights and optimizer state in fp32, with dynamic loss scaling.</p><div class="big" style="color:var(--go-2)">2.6–2.9× faster</div></div>
-      <div class="tech"><div class="ic" style="background:rgba(138,90,114,.12);color:var(--pink)">r16</div><h3>LoRA</h3><p>The base is frozen and kept in fp16 only. Each linear layer learns a rank-16 correction.</p><div class="big" style="color:var(--pink)">1.33% trained</div></div>
-      <div class="tech"><div class="ic" style="background:rgba(91,107,79,.1);color:var(--green)">K</div><h3>Options-only loss</h3><p>The softmax covers only the answer labels, exactly as the model is read when serving.</p><div class="big" style="color:var(--green)">train = serve</div></div>
-      <div class="tech"><div class="ic" style="background:rgba(201,162,39,.1);color:var(--yellow)">×2</div><h3>Two GPUs</h3><p>Micro-batches split over both T4s, gradients summed before each update. Tested to match a one-GPU run.</p><div class="big" style="color:var(--yellow)">2,180 tok/s</div></div>
-    </div>
-
-    <div class="panel chart rv">
-      <div class="chart-head">
-        <div><h3 style="margin:0">Validation loss, every 1,000 steps</h3><div class="lg" style="margin-top:8px"><span><i style="background:var(--go)"></i>held-out decisions</span><span><i style="background:var(--orange)"></i>held-out conversations</span></div></div>
-        <span class="note" style="margin:0">Hover the chart for exact values</span>
-      </div>
-      <div class="chart-wrap"><svg id="loss" viewBox="0 0 900 300" role="img" aria-label="Validation loss by training step"></svg><div class="tip" id="tip"></div></div>
-      <div class="kpis">
-        <div class="kpi"><b style="color:var(--go-2)">1.599 → 0.685</b><span>decision loss: untouched GPT-2 XL → step 36,000</span></div>
-        <div class="kpi"><b style="color:var(--green)">~20% → ~50%</b><span>average probability on the correct answer</span></div>
-        <div class="kpi"><b style="color:var(--yellow)">37,224 / 81,122</b><span>steps done · 25 September 2026</span></div>
-      </div>
-      <p class="note">The conversation loss rises slightly (1.94 → 2.14). That's expected: this run spends all its compute on decisions, with no conversation data.</p>
-    </div>
-
-    <div class="two rv" style="margin-top:18px">
-      <div class="panel">
-        <h3>What it learns from</h3>
-        <p class="muted" style="font-size:14.5px">549,223 human-labeled questions from 28 open datasets. Options are shuffled, so the model has to <em>read</em> them.</p>
-        <div class="skills" id="skills"></div>
-      </div>
-      <div class="panel">
-        <h3>Why it fits on a free GPU</h3>
-        <p class="muted" style="font-size:14.5px">GPU memory for XL, for sequences of up to 384 tokens.</p>
-        <div class="limlab" id="limlab">│ T4 limit · 15 GB</div>
-        <div id="mem"></div>
-        <h3 style="margin-top:26px">Throughput on Kaggle T4s</h3>
-        <table><thead><tr><th>Model</th><th>Setup</th><th style="text-align:right">tok/s</th></tr></thead><tbody>
-          <tr><td>medium</td><td>fp32</td><td style="text-align:right">1,265</td></tr>
-          <tr><td>medium</td><td>fp16 + bucketing</td><td style="text-align:right;color:var(--go-2)">4,340</td></tr>
-          <tr><td>large</td><td>fp16 + LoRA · 2 GPUs</td><td style="text-align:right">3,929</td></tr>
-          <tr><td>XL</td><td>fp16 + LoRA · 1 GPU</td><td style="text-align:right">1,429</td></tr>
-          <tr><td>XL</td><td>fp16 + LoRA · 2 GPUs</td><td style="text-align:right;color:var(--yellow)">2,180</td></tr>
-        </tbody></table>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PLAY -->
-<section class="chap" id="play">
-  <div class="wrap">
-    <div class="chap-head">
-      <div class="chap-num">05</div>
-      <div><div class="eyebrow">Play</div><h2>A game is just another decision.</h2></div>
-    </div>
-    <div class="play rv">
-      <div class="board" id="board" tabindex="0" aria-label="Snake board, drawn exactly as the text Golem-One reads"></div>
-      <div>
-        <p class="chap-sub" style="margin-top:0">The board is the <b>state</b>, one character per cell. The question is <i>"Which way should the head move next, to eat the apple without ever crashing?"</i> Snake isn't a separate model. It's one of Golem-One's skills, learned in the same XL run.</p>
-        <div class="moves" id="moves"></div>
-        <div class="ctrl">
-          <div class="seg" role="group" aria-label="Who plays"><button class="on" data-who="expert">Watch the expert</button><button data-who="you">You play</button></div>
-          <button class="btn sm" id="pause">⏸ Pause</button>
-        </div>
-        <div class="meta"><span>apples <b id="sc">0</b></span><span>moves <b id="st">0</b></span><span id="hint">green = the expert's move, the training label</span></div>
-        <p class="note">This is a browser re-creation of the expert that labeled the training positions: take the shortest path to the apple only if the tail is still reachable afterwards, otherwise follow the tail. In "You play" mode, use the arrow keys, swipe, or tap a move. After training, Golem-One keeps learning from its own games through the Golem API (REINFORCE).</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- SOURCES -->
-<section class="chap" id="sources">
-  <div class="wrap">
-    <div class="chap-head">
-      <div class="chap-num">06</div>
-      <div><div class="eyebrow">Sources</div><h2>Every part, and the paper it follows.</h2></div>
-    </div>
-    <div class="tabs big" role="tablist">
-      <button class="on" data-tab2="p-papers">Papers</button><button data-tab2="p-choices">Design choices</button>
-    </div>
-    <div class="tabpane on" id="p-papers" style="padding:0"><div class="lin"><table><thead><tr><th>Golem component</th><th>Research it follows</th><th>Report</th></tr></thead><tbody id="lin"></tbody></table></div></div>
-    <div class="tabpane" id="p-choices" style="padding:0"><div id="choices"></div></div>
-
-    <div class="endcard rv" style="margin-top:80px">
-      <div>
-        <div class="eyebrow">Model card · Technical Report 11</div>
-        <h2 style="font-size:clamp(28px,3.4vw,40px)">The whole story, in 15 pages.</h2>
-        <ul>
-          <li>Every component we built in Go, with its paper and how we checked it</li>
-          <li>GPT-2 XL and Golem-One XL side by side, and the five changes</li>
-          <li>The training recipe, the data, progress so far, and the calibration plan</li>
-          <li>Intended use, limitations, and all references</li>
-        </ul>
-      </div>
-      <div style="display:grid;gap:12px;justify-items:start">
-        <a class="btn primary" href="assets/golem-one-xl-model-card.pdf">Download the model card (PDF)</a>
-        <span class="muted" style="font-size:13px">September 2026</span>
-      </div>
-    </div>
-    <div class="limits">
-      <div><b>Not evaluated yet</b><p>Accuracy, calibration and results on held-out task families come when training finishes. For now there are only training losses.</p></div>
-      <div><b>Valid isn't correct</b><p>Every answer is one of the declared options, but a confident wrong answer is still possible. Low-confidence answers should go to a person.</p></div>
-      <div><b>A research model</b><p>English only, with biases from GPT-2's web data and the labeled datasets. It's not for consequential decisions about people.</p></div>
-    </div>
-  </div>
-</section>
+</div>
 </main>
 
 <footer><div class="wrap">
-  <span>🗿 Golem: GPT-2 rebuilt layer by layer in <svg viewBox="0 0 207 78" aria-label="Go"><use href="#go-mark"/></svg>, taught to decide</span>
-  <span>The Go logo is a trademark of Google LLC. Golem is an independent project. <a href="profile.html">About the builder</a></span>
+  <span>Iyed Sebai — AI engineer, RAG &amp; agentic systems</span>
+  <span><a href="golem.html">Golem project</a></span>
 </div></footer>
 
-<script>
-(() => {
-"use strict";
-const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
-const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-
-const once = new IntersectionObserver(es => es.forEach(e => {
-  if (!e.isIntersecting) return;
-  e.target.classList.add("in");
-  e.target.dispatchEvent(new Event("inview"));
-  once.unobserve(e.target);
-}), { threshold: .15 });
-$$(".rv").forEach(el => once.observe(el));
-
-/* progress + chapter nav */
-const prog = $("#progress");
-addEventListener("scroll", () => { const h = document.documentElement; prog.style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight) * 100) + "%"; }, { passive: true });
-const navA = $$(".chapters a");
-function setNav(id) { navA.forEach(a => a.classList.toggle("cur", a.getAttribute("href") === "#" + id)); }
-const secObs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) setNav(e.target.id); }), { rootMargin: "-40% 0px -55% 0px" });
-$$("section[id]").forEach(s => secObs.observe(s));
-
-/* bars */
-function bars(el, data, wrong) {
-  const top = Math.max(...data.map(d => d[1]));
-  el.innerHTML = data.map(([n, p]) => `<div class="row${p === top ? " top" : ""}${p === top && wrong ? " bad" : ""}"><span>${n}</span><div class="tr"><div class="fl" data-w="${p * 100}"></div></div><span>${p.toFixed(2)}</span></div>`).join("");
-}
-const fill = (el, on = true) => $$(".fl", el).forEach(f => f.style.width = on ? f.dataset.w + "%" : "0");
-
-/* hero live card */
-const TICKET = "Hi, I was charged twice for my order #4471 yesterday. I need the second payment refunded today, this is really frustrating.";
-const LIVEQ = [
-  ["category", "choice · 4", [["billing", .61], ["bug", .29], ["delivery", .08], ["account", .02]], false],
-  ["upset?", "yes / no", [["yes", .89], ["no", .11]], false],
-  ["urgency", "score · 3", [["low", .72], ["medium", .13], ["high", .14]], true]
-];
-const conf = ps => { const h = -ps.reduce((a, p) => a + (p > 0 ? p * Math.log(p) : 0), 0); return 1 - h / Math.log(ps.length); };
-$("#live-qs").innerHTML = LIVEQ.map(([n, t, d]) => `<div class="q"><div class="q-top"><span>${n}</span><span><span class="conf">confidence ${conf(d.map(x => x[1])).toFixed(2)}</span> · ${t}</span></div><div class="bb"></div></div>`).join("");
-$$("#live-qs .q").forEach((q, i) => bars($(".bb", q), LIVEQ[i][2], LIVEQ[i][3]));
-let liveT = [];
-function playLive() {
-  liveT.forEach(clearTimeout); liveT = [];
-  const typed = $("#typed"); typed.textContent = "";
-  $$("#live-qs .q").forEach(q => { q.classList.remove("on"); fill(q, false); });
-  if (reduce) { typed.textContent = TICKET; $$("#live-qs .q").forEach(q => { q.classList.add("on"); fill(q); }); return; }
-  let i = 0;
-  const type = () => { typed.textContent = TICKET.slice(0, ++i); if (i < TICKET.length) liveT.push(setTimeout(type, 16)); else done(); };
-  const done = () => $$("#live-qs .q").forEach((q, k) => liveT.push(setTimeout(() => { q.classList.add("on"); fill(q); }, 250 + k * 120)));
-  liveT.push(setTimeout(type, 300));
-}
-$("#replay-live").addEventListener("click", playLive);
-playLive();
-
-/* count-up */
-$$("[data-count]").forEach(el => {
-  const target = +el.dataset.count, dec = +(el.dataset.dec || 0), suf = el.dataset.suf || "";
-  el.closest(".rv").addEventListener("inview", () => {
-    if (reduce || target === 0) return;
-    const t0 = performance.now();
-    const tick = t => { const k = Math.min(1, (t - t0) / 1200), v = target * (1 - Math.pow(1 - k, 3)); el.textContent = v.toFixed(dec) + suf; if (k < 1) requestAnimationFrame(tick); };
-    requestAnimationFrame(tick);
-  });
-});
-
-/* idea */
-bars($("#one-bars"), LIVEQ[0][2]);
-const GEN = ["The", " customer", " was", " charged", " twice", ",", " so", " this", " goes", " to", ":", " payments"];
-let genI;
-function playWays() {
-  clearInterval(genI);
-  const g = $("#gen"); g.innerHTML = ""; $("#gen-n").textContent = "0";
-  $("#gen-v").classList.remove("show"); $("#one-v").classList.remove("show"); fill($("#one-bars"), false);
-  setTimeout(() => { fill($("#one-bars")); $("#one-v").classList.add("show"); }, 400);
-  let i = 0;
-  genI = setInterval(() => {
-    if (i >= GEN.length) { clearInterval(genI); $("#gen-v").classList.add("show"); return; }
-    const t = document.createElement("span"); t.className = "tok"; t.textContent = GEN[i].replace(/^ /, "␣"); g.appendChild(t);
-    requestAnimationFrame(() => t.classList.add("in")); $("#gen-n").textContent = ++i;
-  }, reduce ? 0 : 300);
-}
-$("#ways").addEventListener("inview", playWays);
-
-/* ---------- architecture diagram ---------- */
-const COL = { blue: "var(--blue)", yellow: "var(--yellow)", pink: "var(--pink)", cyan: "var(--cyan)", green: "var(--green)", red: "var(--red)", go: "var(--go)" };
-const NODES = [
-  ["softmax", 125, 70, 190, 40, "blue", ["Softmax"]],
-  ["linear", 125, 140, 190, 40, "yellow", ["Linear (tied to Wₑ)"]],
-  ["lnf", 125, 210, 190, 36, "pink", ["Final Layer Norm"]],
-  ["ffn", 125, 335, 190, 54, "yellow", ["Feed Forward", "4× width · GELU"]],
-  ["ln", 125, 415, 190, 34, "pink", ["Layer Norm"]],
-  ["attention", 125, 525, 190, 54, "cyan", ["Causal Multi-Head", "Attention"]],
-  ["ln", 125, 605, 190, 34, "pink", ["Layer Norm"]],
-  ["positions", 328, 705, 98, 40, "green", ["Positional", "encoding Wₚ"]],
-  ["embedding", 125, 765, 190, 46, "red", ["Embedding Layer"]],
-  ["tokenizer", 125, 840, 190, 36, "go", ["BPE tokenizer · text"]]
-];
-const ONE_TEXT = { tokenizer: ["State + typed questions"], attention: ["Attention · segment mask", "+ LoRA (rank 16)"], ffn: ["Feed Forward", "GELU · + LoRA (rank 16)"], linear: ["Only K label rows of Wₑ"], softmax: ["Softmax over K options"], embedding: ["Embedding (frozen)"] };
-const BADGES = { tokenizer: [1], attention: [2, 3], ffn: [3], linear: [4], softmax: [4, 5] };
-const TUNED = ["ln", "lnf"], FROZEN = ["embedding", "positions"];
-(function drawArch() {
-  const cx = 220, up = (a, b, x = cx) => `<path class="wire" d="M${x} ${a} V${b}" marker-end="url(#ah)"/>`;
-  const plus = y => `<circle cx="${cx}" cy="${y}" r="12" fill="var(--surface)" stroke="var(--green)" stroke-width="2.4"/><text x="${cx}" y="${y + 6}" text-anchor="middle" fill="var(--text)" style="font:600 17px var(--body)">+</text>`;
-  let s = `<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="wire-h"/></marker></defs>`;
-  s += `<g class="deco"><text x="${cx}" y="40" text-anchor="middle" fill="var(--text)" style="font:600 16px var(--display)" id="out-label">Output probabilities</text>`;
-  s += up(70, 50) + up(140, 113) + up(210, 183);
-  s += `<rect x="70" y="268" width="300" height="410" rx="22" fill="none" stroke="var(--green)" stroke-width="3"/><text x="28" y="480" fill="var(--text)" style="font:600 20px var(--display)">N×</text>`;
-  s += plus(300) + up(288, 249) + up(335, 315) + up(415, 392) + plus(490) + up(478, 452) + up(525, 505) + up(605, 582) + up(713, 642);
-  s += `<path class="wire" d="M${cx} 662 H95 V490 H205" marker-end="url(#ah)"/><path class="wire" d="M${cx} 465 H95 V300 H205" marker-end="url(#ah)"/>`;
-  s += `<circle cx="${cx}" cy="662" r="3.5" fill="var(--green)"/><circle cx="${cx}" cy="465" r="3.5" fill="var(--green)"/>`;
-  s += plus(725) + `<path class="wire" d="M328 725 H235" marker-end="url(#ah)"/>` + up(765, 740) + up(840, 814) + `</g>`;
-  NODES.forEach(([id, x, y, w, h, c, lines]) => {
-    const small = id === "positions";
-    let t = lines.length === 1
-      ? `<text x="${x + w / 2}" y="${y + h / 2 + 5}" text-anchor="middle" data-o="${lines[0]}">${lines[0]}</text>`
-      : `<text x="${x + w / 2}" y="${y + h / 2 - 3}" text-anchor="middle" class="${small ? "s" : ""}" ${small ? 'style="fill:var(--text)"' : ""} data-o="${lines[0]}">${lines[0]}</text><text x="${x + w / 2}" y="${y + h / 2 + 15}" text-anchor="middle" class="${small || id === "ffn" ? "s" : ""}" data-o="${lines[1]}">${lines[1]}</text>`;
-    s += `<g class="node" tabindex="0" role="button" data-id="${id}" style="color:${COL[c]}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${small ? 20 : 9}" stroke="${COL[c]}"/>${t}</g>`;
-    (BADGES[id] || []).forEach((k, i) => s += `<g class="badge" data-b="${k}"><circle cx="${x + w + 16 + i * 23}" cy="${y + h / 2}" r="10"/><text x="${x + w + 16 + i * 23}" y="${y + h / 2 + 4}" text-anchor="middle">${k}</text></g>`);
-  });
-  $("#arch").innerHTML = s;
-})();
-const arch = $("#arch");
-function setMode(one) {
-  arch.classList.toggle("one", one);
-  $$(".node", arch).forEach(n => {
-    const id = n.dataset.id, alt = ONE_TEXT[id];
-    $$("text", n).forEach((t, i) => t.textContent = one && alt ? (alt[i] ?? t.dataset.o) : t.dataset.o);
-    n.classList.toggle("changed", !!BADGES[id]); n.classList.toggle("tuned", TUNED.includes(id)); n.classList.toggle("frozen", FROZEN.includes(id));
-  });
-  $("#out-label").textContent = one ? "Typed answers + probabilities" : "Output probabilities";
-  $$(".stage .seg button").forEach((b, i) => b.classList.toggle("on", one ? i === 1 : i === 0));
-  $("#cap").innerHTML = one
-    ? `<span><i style="border-color:var(--orange)"></i>changed</span><span><i style="border-color:var(--green);border-style:dashed"></i>fine-tuned</span><span><i style="border-color:#9b9284"></i>frozen</span>`
-    : `<span>GPT-2 XL · 48 blocks · d = 1,600 · 25 heads</span>`;
-}
-function highlight(ids, badges) {
-  arch.classList.toggle("focus", ids.length > 0);
-  $$(".node", arch).forEach(n => n.classList.toggle("hl", ids.includes(n.dataset.id)));
-  $$(".badge", arch).forEach(b => b.classList.toggle("hl", (badges || []).includes(+b.dataset.b)));
-}
-
-/* story steps */
-const S = [
-  { kind: "div", mode: 0, nodes: [], kicker: "The rule", title: "One diagram. One rule. Build every box by hand.",
-    lead: "No ML framework, no borrowed layers. Each box is plain Go in its own package, with a forward pass and a backward pass derived by hand. Every one is checked numerically before moving on: gradients against finite differences, and fast kernels bit for bit against the naive loop.",
-    nums: [["124,439,808", "params in golem-small: exactly GPT-2 small"], ["4", "sizes, small to XL, each matching GPT-2's param count exactly"], ["11", "research-style reports"]] },
-  { id: "tokenizer", mode: 0, nodes: ["tokenizer"], pkg: "internal/tokenizer", title: "Byte-level BPE tokenizer",
-    lead: "Text becomes integers. The base alphabet is the 256 bytes, so any string can be encoded. The most frequent adjacent pairs are then merged, 50,000 times, into a 50,257-token vocabulary.",
-    formula: "\"Golem decides\" → a few integer ids", follows: "Sennrich et al., 2016 · GPT-2, 2019", check: "Reproduces OpenAI's encoder.py exactly, including its pre-tokenization regex and byte-to-Unicode map." },
-  { id: "embedding", mode: 0, nodes: ["embedding", "positions"], pkg: "internal/embedding", title: "Embeddings and positions",
-    lead: "Each token id picks one row of the embedding matrix Wₑ. A learned vector for each position is added, since attention alone doesn't know word order. The fixed sinusoidal encoding is available as an option.",
-    formula: "h₀ = U·Wₑ + Wₚ", follows: "GPT-1, 2018 (the exact formula) · Vaswani et al., 2017", check: "Backward pass verified against finite differences. In XL, Wₑ alone is 50,257 × 1,600 = 80.4M parameters." },
-  { id: "attention", mode: 0, nodes: ["attention"], pkg: "internal/attention", title: "Causal multi-head attention",
-    lead: "Each token forms a query, a key and a value, and gathers information from the tokens before it. The causal mask stops any token from seeing the future. Golem computes attention in blocks, FlashAttention-style, so the full T×T matrix is never stored.",
-    formula: "softmax(QKᵀ/√dₖ + M)·V", follows: "Attention Is All You Need, 2017 · GPT-1/GPT-2 head layout", check: "Changing a later token leaves every earlier output bit-for-bit identical: the mask is exact. XL has 25 heads × 64 dims." },
-  { id: "ln", mode: 0, nodes: ["ln", "lnf"], pkg: "internal/nn · internal/block", title: "LayerNorm, before each sub-layer",
-    lead: "LayerNorm rescales each vector to zero mean and unit variance. Each sub-layer is wrapped as x + f(LN(x)). Our starting diagram put LayerNorm after each sub-layer (post-LN, as in GPT-1). We moved it before (pre-LN, as in GPT-2) because deep stacks train more stably that way, and because it's the only way GPT-2's released weights load unchanged.",
-    formula: "LN(x) = γ ⊙ (x − μ)/√(σ² + ε) + β", follows: "Ba, Kiros & Hinton, 2016 · GPT-2's pre-LN layout", check: "In a 12-block stack without normalization, attention barely moved the vectors (std 0.028). With pre-LN, every sub-layer contributes." },
-  { id: "ffn", mode: 0, nodes: ["ffn"], pkg: "internal/ffn", title: "Feed-forward network",
-    lead: "A two-layer perceptron applied to each position on its own: expand 4×, apply GELU, project back. It holds two thirds of every block's parameters.",
-    formula: "GELU(x·W₁ + b₁)·W₂ + b₂", follows: "GPT-1's position-wise FFN · GELU, Hendrycks & Gimpel 2016", check: "GELU matches the exact Gaussian form within 4.7 × 10⁻⁴. With it, 12 blocks total exactly 124,439,808 parameters: GPT-2 small." },
-  { id: "head", mode: 0, nodes: ["lnf", "linear", "softmax"], pkg: "internal/golem", title: "Stack 48 blocks, then a tied head and softmax",
-    lead: "N identical blocks, a final LayerNorm, and a linear layer that reuses Wₑ to score every vocabulary token. Softmax turns the scores into next-token probabilities, and generation samples from them one token at a time.",
-    formula: "p = softmax(LN_f(h_N) · Wₑᵀ)", follows: "GPT-2 · weight tying, Press & Wolf 2017", check: "All four sizes match OpenAI's parameter counts exactly, up to 1,557,611,200. An untrained model starts at the loss theory predicts." },
-  { id: "engine", mode: 0, nodes: ["attention", "ffn", "linear"], pkg: "internal/tensor · internal/gpu", title: "Then make it fast",
-    lead: "Every box above is mostly matrix products. We wrote an ARM64 NEON micro-kernel in Go assembly that keeps 96 running sums in registers. We also wrote a CUDA engine, modeled on llm.c, that keeps the whole model on the GPU. Then Golem learned to converse, through supervised fine-tuning and DPO.",
-    formula: "112 GFLOP/s per core · 109 → 253 tok/s fine-tuning on a laptop", follows: "llm.c (Karpathy) · InstructGPT · DPO", check: "Every kernel is bit-identical to the naive triple loop, and the GPU engine matches the CPU engine." },
-  { kind: "div", mode: 1, nodes: [], kicker: "02 · Transform", title: "Now: five changes turn GPT-2 XL into a decision model.", anchor: "transform",
-    lead: "The idea comes from TypeSafe AI's Jev, a \"System One\" model: typed questions in, a calibrated probability for every allowed answer out. We kept Jev's interface and guarantees, but not its network. Our five changes are orange on the diagram. Changes 1, 2 and 4 are about how the model is read; 3 and 5 are about how it's trained.",
-    nums: [["5", "changes"], ["20.7M", "trained parameters (1.33%)"], ["1,557,611,200", "parameters after merging: unchanged"]] },
-  { id: "c1", mode: 1, nodes: ["tokenizer"], badges: [1], pkg: "change 1 · internal/decide", title: "① A state and typed questions",
-    was: "Any text; the model continues it.", now: "A state + YesNo / Choice / Score questions. Every option label is one token, and each question ends at Answer:",
-    formula: "State: … ⏎ Question: … ⏎ A) … B) … ⏎ Answer:", follows: "The interface of TypeSafe AI's Jev", check: "At run time, every label is checked to be one GPT-2 token and all labels to be distinct. Tests cover up to 255 options." },
-  { id: "c2", mode: 1, nodes: ["attention"], badges: [2], pkg: "change 2 · internal/golem", title: "② Attention with a segment mask",
-    was: "One causal mask over one sequence.", now: "The state is read once, then every question runs in one pass as its own segment. Each sees the whole state and itself, never another question.",
-    formula: "A(t) = {0 … S−1} ∪ {S+oₜ … S+t}", follows: "Ours, building on the KV cache used for generation", check: "Matches separate forward passes to 10⁻⁶ per layer and 10⁻⁴ on the final probabilities." },
-  { id: "c3", mode: 1, nodes: ["attention", "ffn"], badges: [3], pkg: "change 3 · internal/gpu", title: "③ LoRA adapters on every linear layer",
-    was: "All 1.56B weights would need updating: about 25 GB, and a T4 has 15.", now: "The base is frozen in fp16. Rank-16 adapters sit on QKV, the attention output and both FFN layers, and the LayerNorms are fine-tuned too.",
-    formula: "y = x·(W + α/r · A·B) + b · r = 16, α = 32", follows: "LoRA, Hu et al. 2022 · mixed precision, Micikevicius et al. 2018", check: "The LoRA forward pass equals the merged-weight forward pass on the CPU, and the adapter gradients match the CPU engine's." },
-  { id: "c4", mode: 1, nodes: ["linear", "softmax"], badges: [4], pkg: "change 4 · internal/decide", title: "④ Read only the K label rows",
-    was: "50,257 scores, a softmax over all of them, then sampling.", now: "Only the K option-label rows of Wₑ are scored and renormalized, with a temperature T. Any other answer has no probability at all.",
-    formula: "p(k) = softmax_k(e_ℓₖᵀ h / T)", follows: "Jev's guarantee · MMLU-style answer scoring", check: "Scoring all questions in one pass reproduces separate passes to 10⁻⁴." },
-  { id: "c5", mode: 1, nodes: ["softmax"], badges: [5], pkg: "change 5 · internal/gpu", title: "⑤ Train on the options only",
-    was: "Cross-entropy over the whole vocabulary, on every token.", now: "Cross-entropy over the K options only, at the answer position: exactly the quantity that is served.",
-    formula: "ℓ = −log( e^z_y / Σ_{j∈options} e^z_j )", follows: "The log score, a proper scoring rule", check: "Held-out decision loss fell from 1.599 (GPT-2 XL) to 0.685 by step 36k." },
-  { kind: "div", mode: 1, nodes: ["tokenizer", "attention", "ffn", "linear", "softmax"], badges: [1, 2, 3, 4, 5], kicker: "The result", title: "Same shape as GPT-2 XL. A different job.",
-    lead: "After training, the adapters are folded back into the weights. A Golem-One XL checkpoint is an ordinary Golem checkpoint, with exactly GPT-2 XL's parameter count. It still loads into the same Go engine and can still write text, but it's read and trained to decide.",
-    nums: [["1 pass", "for all questions"], ["K", "rows read, not 50,257"], ["0", "invalid answers possible"]] }
-];
-const steps = $("#steps");
-steps.innerHTML = S.map((s, i) => {
-  if (s.kind === "div") return `<div class="step divider${s.mode ? " one" : ""}" data-i="${i}"${s.anchor ? ` id="${s.anchor}"` : ""}><div class="card">
-    <div class="big" style="color:${s.mode ? "var(--orange)" : "var(--go-2)"}">${s.kicker}</div><h3 style="margin-top:10px">${s.title}</h3><p class="lead">${s.lead}</p>
-    <div class="nums">${s.nums.map(([b, t]) => `<div><b style="color:${s.mode ? "var(--orange)" : "var(--text)"}">${b}</b><span>${t}</span></div>`).join("")}</div></div></div>`;
-  return `<div class="step${s.mode ? " one" : ""}" data-i="${i}" data-id="${s.id}"><div class="card">
-    <span class="pkg">${s.pkg}</span><h3>${s.title}</h3>
-    ${s.was ? `<div class="ba"><div class="was"><small>GPT-2 XL</small>${s.was}</div><div class="now"><small>Golem-One XL</small>${s.now}</div></div>` : `<p class="lead">${s.lead}</p>`}
-    <div class="formula">${esc(s.formula)}</div>
-    <div class="facts"><div class="fact"><small>Follows</small><div>${s.follows}</div></div><div class="fact"><small>How we know it's right</small><div>${s.check}</div></div></div></div></div>`;
-}).join("");
-let cur = -1;
-function activate(i) {
-  if (i === cur) return; cur = i;
-  const s = S[i];
-  setMode(!!s.mode); highlight(s.nodes, s.badges);
-  $$(".step", steps).forEach(el => el.classList.toggle("on", +el.dataset.i === i));
-  if (s.mode) setNav("transform"); else setNav("build");
-}
-const stepObs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) activate(+e.target.dataset.i); }), { rootMargin: innerWidth <= 900 ? "-68% 0px -30% 0px" : "-48% 0px -48% 0px" });
-$$(".step", steps).forEach(el => stepObs.observe(el));
-activate(0);
-const firstStepFor = id => S.findIndex(s => s.nodes && s.nodes.includes(id) && s.id);
-function goStep(i) {
-  const el = $(`.step[data-i="${i}"]`, steps); if (!el) return;
-  const mobile = innerWidth <= 900;
-  const y = el.getBoundingClientRect().top + scrollY - (mobile ? innerHeight * .6 : innerHeight * .5 - el.offsetHeight / 2);
-  scrollTo({ top: y, behavior: reduce ? "auto" : "smooth" });
-  activate(i);
-}
-$$(".node", arch).forEach(n => {
-  const go = () => { const id = n.dataset.id, one = arch.classList.contains("one"); let i = S.findIndex(s => s.id && s.nodes.includes(id) && !!s.mode === one); if (i < 0) i = firstStepFor(id); if (i >= 0) goStep(i); };
-  n.addEventListener("click", go);
-  n.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
-});
-$$(".stage .seg button").forEach(b => b.addEventListener("click", () => goStep(b.dataset.go === "build" ? 1 : S.findIndex(s => s.anchor === "transform"))));
-
-/* mask */
-const mask = $("#mask"), segOf = i => i < 5 ? 0 : i < 8 ? 1 : i < 10 ? 2 : 3, startOf = i => [0, 5, 8, 10][segOf(i)];
-const cells = [];
-for (let r = 0; r < 14; r++) for (let c = 0; c < 14; c++) {
-  const d = document.createElement("div");
-  if (c <= r && (c < 5 || c >= startOf(r))) d.className = r < 5 || c < 5 ? "st" : "q" + segOf(r);
-  d.dataset.r = r; cells.push(d); mask.appendChild(d);
-}
-function maskRow(r) {
-  cells.forEach(d => d.classList.toggle("dm", r !== null && +d.dataset.r !== r));
-  const w = r === null ? -1 : segOf(r);
-  $("#mask-say").innerHTML = r === null ? "row = token that looks<br>column = token looked at" : w === 0 ? "a state token sees<br>only earlier state tokens" : `question ${w} sees the whole<br>state + its own tokens,<br>never other questions`;
-}
-mask.addEventListener("pointerover", e => e.target.dataset.r && maskRow(+e.target.dataset.r));
-mask.addEventListener("pointerleave", () => maskRow(null));
-mask.addEventListener("click", e => e.target.dataset.r && maskRow(+e.target.dataset.r));
-
-/* request builder */
-const DEF = { state: TICKET, qs: [
-  { name: "category", type: "choice", ins: "What is this ticket about?", opts: "billing, bug, delivery, account" },
-  { name: "upset", type: "yes_no", ins: "Is the customer upset?", opts: "" },
-  { name: "urgency", type: "score", ins: "How urgent is it?", opts: "low, medium, high" }] };
-let lab = JSON.parse(JSON.stringify(DEF));
-const labels = n => Array.from({ length: n }, (_, i) => n <= 26 ? String.fromCharCode(65 + i) : String(i + 1));
-const optsOf = q => q.type === "yes_no" ? ["yes", "no"] : q.opts.split(",").map(s => s.trim()).filter(Boolean);
-const approxTok = t => (t.match(/\s?[A-Za-z]+|\s?\d{1,3}|\s?[^\sA-Za-z\d]|\n/g) || []).length;
-const SEGC = ["rgba(184,121,58,.85)", "rgba(91,107,79,.75)", "rgba(178,59,59,.8)", "rgba(138,90,114,.8)"];
-function qText(q) { const o = optsOf(q), L = labels(o.length); return `Question: ${q.ins}\nOptions:\n${o.map((x, i) => `${L[i]}) ${x}`).join("\n")}\nAnswer:`; }
-function renderLabQs() {
-  $("#lab-qs").innerHTML = lab.qs.map((q, i) => `<div class="qed" data-i="${i}">
-    <input class="nm" value="${esc(q.name)}" data-k="name" aria-label="Question name">
-    <select class="ty" data-k="type" aria-label="Question type"><option value="choice"${q.type === "choice" ? " selected" : ""}>choice</option><option value="yes_no"${q.type === "yes_no" ? " selected" : ""}>yes / no</option><option value="score"${q.type === "score" ? " selected" : ""}>score</option></select>
-    <input value="${esc(q.ins)}" data-k="ins" aria-label="Question">
-    <button class="x" data-del="${i}" aria-label="Remove question">✕</button>
-    <input class="full" value="${esc(q.type === "yes_no" ? "yes, no" : q.opts)}" data-k="opts" ${q.type === "yes_no" ? "disabled" : ""} aria-label="Options, comma-separated" placeholder="options, comma-separated">
-  </div>`).join("");
-  $("#lab-add").disabled = lab.qs.length >= 4;
-}
-function renderLabOut() {
-  const qs = lab.qs.filter(q => optsOf(q).length >= 2);
-  let p = `<span class="cm">&lt;|endoftext|&gt;</span>State:\n${esc(lab.state)}\n`;
-  qs.forEach((q, i) => {
-    const o = optsOf(q), L = labels(o.length);
-    p += `\n<span class="cm">── segment ${i + 1} · sees the state + itself ──</span>\nQuestion: ${esc(q.ins)}\nOptions:\n${o.map((x, k) => `<span class="lb">${L[k]})</span> ${esc(x)}`).join("\n")}\n<span class="an">Answer:</span> <span class="cm">→ p over {${L.join(", ")}}</span>\n`;
-  });
-  $("#lab-prompt").innerHTML = p;
-  const body = { state: lab.state, questions: {} };
-  qs.forEach(q => { const e = { type: q.type, instructions: q.ins }; if (q.type !== "yes_no") e.options = optsOf(q); body.questions[q.name || "q"] = e; });
-  const json = JSON.stringify(body, null, 2);
-  $("#lab-json").innerHTML = `<span class="k">curl</span> -s localhost:8080/v1/decide -d '` + esc(json).replace(/(&quot;[^&]*?&quot;)(\s*:)/g, '<span class="s">$1</span>$2') + `'`;
-  $("#lab-json").dataset.raw = `curl -s localhost:8080/v1/decide -d '${json.replace(/'/g, "'\\''")}'`;
-  const Sn = Math.max(1, approxTok("State:\n" + lab.state)), Q = qs.map(q => Math.max(1, approxTok("\n\n" + qText(q)))), N = Sn + Q.reduce((a, b) => a + b, 0), u = 300 / N;
-  let m = `<rect width="300" height="300" fill="rgba(33,30,25,.04)"/>`;
-  m += `<polygon points="0,0 ${u},0 ${Sn * u},${Sn * u} ${Sn * u},${Sn * u} 0,${Sn * u}" fill="rgba(92,111,138,.65)"/>`;
-  let o = Sn;
-  Q.forEach((n, i) => {
-    m += `<rect x="0" y="${o * u}" width="${Sn * u}" height="${n * u}" fill="rgba(92,111,138,.45)"/>`;
-    m += `<polygon points="${o * u},${o * u} ${(o + 1) * u},${o * u} ${(o + n) * u},${(o + n) * u} ${o * u},${(o + n) * u}" fill="${SEGC[i]}"/>`;
-    m += `<line x1="0" x2="300" y1="${o * u}" y2="${o * u}" stroke="rgba(33,30,25,.12)"/><line y1="0" y2="300" x1="${o * u}" x2="${o * u}" stroke="rgba(33,30,25,.12)"/>`;
-    o += n;
-  });
-  $("#lab-mask").innerHTML = m + `<rect width="300" height="300" fill="none" stroke="rgba(33,30,25,.2)"/>`;
-  $("#lab-mask-note").innerHTML = `≈ ${Sn} state tokens and ${Q.map((n, i) => `<span style="color:${SEGC[i]}">≈ ${n}</span>`).join(" · ")} question tokens (a rough word-piece estimate, not the exact BPE count). Blue: every token sees the state. Colored triangles: each question sees only itself.`;
-}
-$("#lab-state").addEventListener("input", e => { lab.state = e.target.value; renderLabOut(); });
-$("#lab-qs").addEventListener("input", e => {
-  const box = e.target.closest(".qed"); if (!box) return;
-  const q = lab.qs[+box.dataset.i]; q[e.target.dataset.k] = e.target.value;
-  if (e.target.dataset.k === "type") { if (q.type === "score" && !q.opts) q.opts = "low, medium, high"; renderLabQs(); }
-  renderLabOut();
-});
-$("#lab-qs").addEventListener("click", e => { const d = e.target.dataset.del; if (d !== undefined) { lab.qs.splice(+d, 1); renderLabQs(); renderLabOut(); } });
-$("#lab-add").addEventListener("click", () => { if (lab.qs.length < 4) { lab.qs.push({ name: "q" + (lab.qs.length + 1), type: "choice", ins: "Which language is it written in?", opts: "English, French, other" }); renderLabQs(); renderLabOut(); } });
-$("#lab-reset").addEventListener("click", () => { lab = JSON.parse(JSON.stringify(DEF)); $("#lab-state").value = lab.state; renderLabQs(); renderLabOut(); });
-$("#lab-copy").addEventListener("click", async e => { try { await navigator.clipboard.writeText($("#lab-json").dataset.raw); e.target.textContent = "Copied ✓"; } catch { e.target.textContent = "Select & copy"; } setTimeout(() => e.target.textContent = "Copy", 1600); });
-$$(".lab-out .tabs button").forEach(b => b.addEventListener("click", () => {
-  $$(".lab-out .tabs button").forEach(x => x.classList.toggle("on", x === b));
-  $$(".lab-out .tabpane").forEach(p => p.classList.toggle("on", p.id === b.dataset.tab));
-}));
-$("#lab-state").value = lab.state; renderLabQs(); renderLabOut();
-
-/* training visuals */
-const SK = [["entailment", 90000, "MultiNLI · SNLI + e-SNLI explanations"], ["commonsense", 79854, "HellaSwag · PIQA · WinoGrande · CommonsenseQA"], ["reading", 62227, "BoolQ · PAWS · CosmosQA"], ["games", 60000, "Snake: positions from 300 expert games"], ["routing", 55000, "Banking77 · CLINC150 · HWU64 · Bitext"], ["many tasks", 50114, "Super-NaturalInstructions"], ["logic", 40868, "ProofWriter · FOLIO"], ["math", 40000, "AQuA-RAT · MathQA, with worked rationales"], ["moderation", 33064, "Civil Comments · OpenAssistant ratings"], ["reasoning", 30000, "BIG-bench"], ["judgment", 25000, "ETHICS"], ["classification", 24982, "DBpedia · SMS Spam"], ["knowledge", 16461, "ARC · OpenBookQA · QASC"], ["multi-step", 2079, "StrategyQA"]];
-const PAL = ["var(--go)", "var(--green)", "var(--cyan)", "var(--yellow)", "var(--pink)", "var(--orange)", "var(--blue)"];
-$("#skills").innerHTML = SK.map(([n, v, s], i) => `<div class="sk"><span class="n">${n}</span><div class="tr"><div class="fl" style="background:${PAL[i % 7]}" data-w="${v / 900}"></div></div><span class="v">${v.toLocaleString("en-US")}</span><span class="src">${s}</span></div>`).join("");
-const MEM = [["full fine-tune, fp32, 1 seq", 27.7, "var(--red)"], ["fp16 + LoRA, frozen fp16 base, 4 seqs", 14.6, "var(--green)"], ["…of which frozen base weights", 3.3, "var(--go)"]];
-$("#mem").innerHTML = MEM.map(([l, g, c]) => `<div class="memrow"><div class="lb"><span>${l}</span><span>${g} GB</span></div><div class="mt"><div class="mf" style="background:${c}" data-w="${Math.min(100, g / 30 * 100)}"></div><div class="lim" style="left:50%"></div></div></div>`).join("");
-$("#limlab").style.paddingLeft = "calc(50% - 3px)";
-$("#skills").closest(".rv").addEventListener("inview", () => $$("#skills .fl, #mem .mf").forEach(f => f.style.width = f.dataset.w + "%"));
-
-const DEC = [1.5986,1.3006,1.2713,1.2183,1.1882,1.1737,0.9851,0.9711,0.9031,0.8802,0.9024,0.8747,0.8863,0.8107,0.7970,0.8160,0.8363,0.8137,0.7912,0.8065,0.7644,0.7520,0.7571,0.7957,0.7741,0.7392,0.7483,0.7383,0.7518,0.7405,0.7188,0.7268,0.7448,0.7297,0.7337,0.6888,0.6853,0.7120];
-const CONV = [1.9395,1.9679,2.0075,1.9918,2.0280,2.0036,2.0513,2.0537,2.0408,2.0624,2.0735,2.0481,2.0594,2.1068,2.0689,2.0837,2.0884,2.0805,2.0911,2.1026,2.0980,2.1343,2.1399,2.1296,2.1605,2.1464,2.1272,2.1486,2.1305,2.1492,2.1471,2.1553,2.1555,2.1524,2.1539,2.1503,2.1443,2.1383];
-(function chart() {
-  const W = 900, H = 300, L = 44, R = 14, T = 10, B = 30, xmax = 81.1, y0 = .5, y1 = 2.3;
-  const x = i => L + i / xmax * (W - L - R), y = v => T + (y1 - v) / (y1 - y0) * (H - T - B);
-  let s = `<defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#9a3b2b" stop-opacity=".25"/><stop offset="1" stop-color="#9a3b2b" stop-opacity="0"/></linearGradient></defs>`;
-  for (let v = .5; v <= 2.31; v += .25) s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(33,30,25,.05)"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v.toFixed(2)}</text>`;
-  for (let k = 0; k <= 80; k += 10) s += `<text x="${x(k)}" y="${H - 9}" text-anchor="middle">${k}k</text>`;
-  s += `<rect x="${x(37.2)}" y="${T}" width="${x(81.1) - x(37.2)}" height="${H - T - B}" fill="rgba(33,30,25,.022)"/><text x="${(x(37.2) + x(81.1)) / 2}" y="${y(1.4)}" text-anchor="middle" style="fill:var(--dim)">still to train, to step 81,122</text>`;
-  const path = a => a.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
-  s += `<path d="${path(DEC)}L${x(DEC.length - 1)},${y(y0)}L${x(0)},${y(y0)}Z" fill="url(#ga)"/>`;
-  s += `<path d="${path(CONV)}" fill="none" stroke="#b8793a" stroke-width="2.2" stroke-linejoin="round"/><path d="${path(DEC)}" fill="none" stroke="#9a3b2b" stroke-width="2.8" stroke-linejoin="round"/>`;
-  s += `<circle cx="${x(36)}" cy="${y(.6853)}" r="5" fill="#5b6b4f"/><text x="${x(36)}" y="${y(.6853) + 21}" text-anchor="middle" style="fill:#5b6b4f">best 0.685</text>`;
-  s += `<line id="cross" y1="${T}" y2="${H - B}" stroke="rgba(33,30,25,.35)" stroke-dasharray="3 3" opacity="0"/><circle id="cd" r="4.5" fill="#9a3b2b" opacity="0"/><circle id="cc" r="4" fill="#b8793a" opacity="0"/>`;
-  s += `<rect id="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>`;
-  const svg = $("#loss"); svg.innerHTML = s;
-  const tip = $("#tip");
-  const move = e => {
-    const pt = svg.getBoundingClientRect(), px = (e.clientX - pt.left) / pt.width * W;
-    const i = Math.max(0, Math.min(DEC.length - 1, Math.round((px - L) / (W - L - R) * xmax)));
-    $("#cross").setAttribute("x1", x(i)); $("#cross").setAttribute("x2", x(i)); $("#cross").setAttribute("opacity", 1);
-    $("#cd").setAttribute("cx", x(i)); $("#cd").setAttribute("cy", y(DEC[i])); $("#cd").setAttribute("opacity", 1);
-    $("#cc").setAttribute("cx", x(i)); $("#cc").setAttribute("cy", y(CONV[i])); $("#cc").setAttribute("opacity", 1);
-    tip.innerHTML = `step <b style="color:var(--text)">${(i * 1000).toLocaleString("en-US")}</b><br><span style="color:var(--go-2)">decisions ${DEC[i].toFixed(3)}</span><br><span style="color:var(--orange)">conversations ${CONV[i].toFixed(3)}</span>`;
-    tip.style.left = (x(i) / W * 100) + "%"; tip.style.top = (y(DEC[i]) / H * 100) + "%"; tip.style.opacity = 1;
-  };
-  $("#hit").addEventListener("pointermove", move);
-  $("#hit").addEventListener("pointerleave", () => { tip.style.opacity = 0; ["#cross", "#cd", "#cc"].forEach(k => $(k).setAttribute("opacity", 0)); });
-})();
-
-/* snake */
-const WB = 10, D = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }, ORD = ["up", "down", "left", "right"];
-let body, apple, score, nsteps, who = "expert", running = true, timer = null;
-const key = p => p[0] + "," + p[1], inside = p => p[0] >= 0 && p[1] >= 0 && p[0] < WB && p[1] < WB;
-function reset() { body = [[5, 5], [4, 5], [3, 5]]; score = 0; nsteps = 0; placeApple(); }
-function placeApple() { const o = new Set(body.map(key)), f = []; for (let y = 0; y < WB; y++) for (let x = 0; x < WB; x++) if (!o.has(x + "," + y)) f.push([x, y]); apple = f.length ? f[Math.floor(Math.random() * f.length)] : null; }
-function adv(b, m) { const h = b[0], n = [h[0] + D[m][0], h[1] + D[m][1]], eat = apple && n[0] === apple[0] && n[1] === apple[1], rest = eat ? b : b.slice(0, -1); if (!inside(n) || rest.some(p => p[0] === n[0] && p[1] === n[1])) return null; return [n, ...rest]; }
-function bfs(b, t, tailFree) { const bl = new Set((tailFree ? b.slice(0, -1) : b).map(key)); bl.delete(key(b[0])); const q = [[b[0], []]], seen = new Set([key(b[0])]); while (q.length) { const [p, path] = q.shift(); if (p[0] === t[0] && p[1] === t[1]) return path; for (const m of ORD) { const n = [p[0] + D[m][0], p[1] + D[m][1]], k = key(n); if (!inside(n) || seen.has(k) || (bl.has(k) && !(n[0] === t[0] && n[1] === t[1]))) continue; seen.add(k); q.push([n, [...path, m]]); } } return null; }
-const tailOk = b => b.length < 2 || bfs(b, b[b.length - 1], true) !== null;
-function space(b) { const bl = new Set(b.map(key)), q = [b[0]], seen = new Set([key(b[0])]); let n = 0; while (q.length) { const p = q.shift(); for (const m of ORD) { const c = [p[0] + D[m][0], p[1] + D[m][1]], k = key(c); if (inside(c) && !bl.has(k) && !seen.has(k)) { seen.add(k); q.push(c); n++; } } } return n; }
-function expert() {
-  if (apple) { const path = bfs(body, apple, false); if (path) { let b = body, ok = true; for (const m of path) { b = adv(b, m); if (!b) { ok = false; break; } } if (ok && tailOk(b)) return path[0]; } }
-  let best = null, bd = -1; for (const m of ORD) { const b = adv(body, m); if (!b || !tailOk(b)) continue; const d = (bfs(b, b[b.length - 1], true) || []).length; if (d > bd) { bd = d; best = m; } } if (best) return best;
-  let bs = -1; best = "up"; for (const m of ORD) { const b = adv(body, m); if (!b) continue; const s = space(b); if (s > bs) { bs = s; best = m; } } return best;
-}
-function draw() {
-  const c = Array.from({ length: WB }, () => Array(WB).fill("."));
-  body.forEach((p, i) => c[p[1]][p[0]] = i ? "S" : "H"); if (apple) c[apple[1]][apple[0]] = "A";
-  const wall = Array(WB + 2).fill('<span class="W">#</span>').join(" ");
-  $("#board").innerHTML = wall + c.map(r => '\n<span class="W">#</span> ' + r.map(x => x === "." ? "." : `<span class="${x}">${x}</span>`).join(" ") + ' <span class="W">#</span>').join("") + "\n" + wall;
-  $("#sc").textContent = score; $("#st").textContent = nsteps;
-  const hint = expert();
-  $$("#moves .mv").forEach(el => el.classList.toggle("pick", el.dataset.m === hint));
-}
-function step(m) {
-  const nb = adv(body, m);
-  if (!nb || nsteps > 800) { reset(); draw(); return; }
-  const ate = apple && nb[0][0] === apple[0] && nb[0][1] === apple[1];
-  body = nb; nsteps++; if (ate) { score++; placeApple(); if (!apple) reset(); }
-  draw();
-}
-let queued = null;
-function tick() { if (!running) return; if (who === "expert") step(expert()); else if (queued) { step(queued); queued = null; } }
-$("#moves").innerHTML = ORD.map((m, i) => `<button class="mv" data-m="${m}"><b>${"ABCD"[i]}</b>${m}</button>`).join("");
-$("#moves").addEventListener("click", e => { const b = e.target.closest(".mv"); if (b && who === "you") { queued = b.dataset.m; if (!running) toggleRun(); } });
-function toggleRun() { running = !running; $("#pause").textContent = running ? "⏸ Pause" : "▶ Play"; }
-$("#pause").addEventListener("click", toggleRun);
-$$("#play .seg button").forEach(b => b.addEventListener("click", () => {
-  who = b.dataset.who; $$("#play .seg button").forEach(x => x.classList.toggle("on", x === b));
-  $("#hint").textContent = who === "you" ? "green = what the expert would do, your hint" : "green = the expert's move, the training label";
-  reset(); draw(); if (who === "you") $("#board").focus({ preventScroll: true });
-}));
-const KEYS = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
-let playVisible = false;
-addEventListener("keydown", e => { if (who !== "you" || !playVisible || !KEYS[e.key]) return; e.preventDefault(); queued = KEYS[e.key]; });
-let tx = 0, ty = 0;
-$("#board").addEventListener("touchstart", e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
-$("#board").addEventListener("touchend", e => { if (who !== "you") return; const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return; queued = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"); });
-reset(); draw();
-new IntersectionObserver(es => es.forEach(e => {
-  playVisible = e.isIntersecting;
-  if (e.isIntersecting && !timer) timer = setInterval(tick, reduce ? 700 : 160);
-  if (!e.isIntersecting && timer) { clearInterval(timer); timer = null; }
-})).observe($("#board"));
-
-/* sources */
-const A = id => `https://arxiv.org/abs/${id}`, GPT1 = "https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf", GPT2 = "https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf";
-const LIN = [
-  ["Byte-level BPE tokenizer", "tokenizer", [["Sennrich et al., 2016", A("1508.07909")], ["GPT-2, 2019", GPT2]], "1"],
-  ["Embeddings & positions", "embedding", [["GPT-1, 2018", GPT1], ["Vaswani et al., 2017", A("1706.03762")]], "1"],
-  ["Causal multi-head attention", "attention", [["Attention Is All You Need", A("1706.03762")], ["FlashAttention (blocked form)", A("2205.14135")]], "2"],
-  ["LayerNorm & pre-LN block", "nn · block", [["Ba et al., 2016", A("1607.06450")], ["GPT-2", GPT2]], "3"],
-  ["Feed-forward with GELU", "ffn", [["GPT-1", GPT1], ["Hendrycks & Gimpel, 2016", A("1606.08415")]], "4"],
-  ["Tied head, softmax, loss", "golem", [["Press & Wolf, 2017", A("1608.05859")]], "5"],
-  ["AdamW optimizer", "optim", [["Loshchilov & Hutter, 2019", A("1711.05101")]], "7"],
-  ["GPU engine", "gpu", [["llm.c (Karpathy)", "https://github.com/karpathy/llm.c"], ["Mixed Precision Training", A("1710.03740")]], "6, 10"],
-  ["Fine-tuning & preferences", "chat · dpo", [["InstructGPT", A("2203.02155")], ["DPO", A("2305.18290")], ["OpenAssistant", A("2304.07327")]], "7"],
-  ["Typed decisions (System One)", "decide", [["TypeSafe AI: Jev", "https://typesafe.ai/blog/introducing-system-one-models-and-jev"], ["Kahneman, Thinking, Fast and Slow", null]], "9"],
-  ["Label readout", "decide", [["MMLU-style answer scoring", A("2009.03300")]], "9"],
-  ["LoRA adapters", "gpu", [["Hu et al., 2022", A("2106.09685")]], "10"],
-  ["Multi-task data & explanations", "decide", [["Super-NaturalInstructions", A("2204.07705")], ["Distilling Step-by-Step", A("2305.02301")], ["e-SNLI", A("1812.01193")]], "11"],
-  ["Calibration", "decide", [["Guo et al., 2017", A("1706.04599")], ["Brier, 1950", null], ["Gneiting & Raftery, 2007", null]], "9"],
-  ["Learning from outcomes", "decide.Learner", [["REINFORCE (Williams, 1992)", "https://doi.org/10.1007/BF00992696"]], "11"]
-];
-$("#lin").innerHTML = LIN.map(([c, p, r, n]) => `<tr><td>${c}<br><code>${p}</code></td><td>${r.map(([t, u]) => u ? `<a href="${u}" rel="noopener">${t}</a>` : t).join(" · ")}</td><td>Report ${n}</td></tr>`).join("");
-const CH = [
-  ["Foundation", "Build Golem ourselves in Go; start from GPT-2's weights", "A framework, or swapping in another open model; pre-training from scratch", "The point is to build and understand every part, and pre-training from scratch is out of reach for one person."],
-  ["Block layout", "Pre-LN, as in GPT-2", "Post-LN, as in the original diagram and GPT-1", "Deep stacks train more stably, and GPT-2's weights load unchanged."],
-  ["Decisions", "Segment mask + restricted readout on the unchanged transformer", "A new non-autoregressive network (like Jev); a separate classifier head", "Keeps everything pre-training learned, keeps text generation, and gets validity with no new parameters."],
-  ["Labels", "One GPT-2 token per option", "Scoring multi-token option names", "One position per question, and no bias toward short names."],
-  ["Loss", "Softmax over the options only", "The full 50,257-way softmax", "Training optimizes exactly what is served."],
-  ["Options", "Shuffled, with sampled distractors", "Fixed order", "Forces the model to read the options, and removes first-option bias."],
-  ["Size", "XL, 1.56B", "Medium or large", "At this scale, pre-trained size is the strongest lever."],
-  ["Training", "LoRA rank 16 + fp16 on two free T4s", "Full fine-tuning", "Full fine-tuning of XL needs about 25 GB, and a T4 has 15."],
-  ["Data", "28 open, human-labeled datasets", "A single task; labels generated by another model", "Breadth for unseen questions, without inheriting another model's errors."],
-  ["Explanations", "Learned alongside the answers", "Chain-of-thought at inference", "Better answers at no inference cost (Distilling Step-by-Step)."],
-  ["Learning", "Golem updates its own weights through its API", "A separate small RL network", "One model that both decides and learns."]
-];
-$("#choices").innerHTML = CH.map(([q, a, x, w]) => `<details class="ch"><summary><span class="q">${q}</span><span class="a">${a}</span><span class="pl">+</span></summary><div class="bd"><span class="x">Set aside</span><span class="muted">${x}</span><span class="x y">Why</span><span>${w}</span></div></details>`).join("");
-$$("[data-tab2]").forEach(b => b.addEventListener("click", () => {
-  $$("[data-tab2]").forEach(x => x.classList.toggle("on", x === b));
-  ["p-papers", "p-choices"].forEach(id => $("#" + id).classList.toggle("on", id === b.dataset.tab2));
-}));
-})();
-</script>
 </body>
 </html>
